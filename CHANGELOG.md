@@ -36,5 +36,7 @@ All notable changes to this project are tracked here.
 - Improved message search ranking using Postgres full-text search relevance + recency
 - Added dedicated GIN full-text index for `messages.body`
 - Added link preview refresh scheduler with expiry/retry metadata and exponential backoff
+- Added first-column navigation tabs (`Servers`, `DMs`, `Channels`) so server management is not always expanded
+- Kept library controls in right rail (deferred moving library into channel-column tabs)
 - Web MVP (React + Vite shell with auth, server/channel/message flows)
 - Docker Compose stack and setup/version documentation

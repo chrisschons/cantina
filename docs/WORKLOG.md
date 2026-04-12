@@ -41,6 +41,8 @@
 - Added shared link preview module and API startup refresh scheduler loop
 - Added migration `0005_link_preview_refresh_metadata.sql` for refresh/attempt/failure tracking
 - Added TTL and retry/backoff env controls for link preview refresh behavior
+- Added left-rail tabbed navigation (`Servers`/`DMs`/`Channels`) to reduce always-open server controls
+- Deferred library relocation; kept library controls in right sidebar for now
 - Added Docker Compose for app + postgres + redis
 - Added API and setup docs plus version tracking
 - Validation status: runtime checks blocked in this environment (`docker`, `node`, and `pnpm` are unavailable in sandbox)

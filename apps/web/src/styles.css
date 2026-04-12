@@ -141,6 +141,17 @@ button.ghost {
   overflow-y: auto;
 }
 
+.sidebar-tabs {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.panel-note {
+  margin: 0;
+  font-size: 0.73rem;
+  color: var(--text-muted);
+}
+
 .mini-list {
   display: grid;
   gap: 0.25rem;

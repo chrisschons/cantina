@@ -98,6 +98,7 @@ export function App() {
   const [channelSnoozeHours, setChannelSnoozeHours] = useState('0');
   const [channelSettingsOpen, setChannelSettingsOpen] = useState(false);
   const [showUnreadOnly, setShowUnreadOnly] = useState(false);
+  const [leftRailTab, setLeftRailTab] = useState<'servers' | 'dms' | 'channels'>('servers');
   const [linkPreviews, setLinkPreviews] = useState<Record<string, LinkPreview>>({});
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<
@@ -763,79 +764,134 @@ export function App() {
   return (
     <main className="app-shell">
       <aside className="sidebar servers">
-        <header>
-          <h2>Servers</h2>
-        </header>
-        <nav>
-          {servers.map((server) => (
-            <button
-              className={server.id === selectedServerId ? 'item active' : 'item'}
-              key={server.id}
-              onClick={() => void onSelectServer(server.id)}
-            >
-              {server.name}
-            </button>
-          ))}
-        </nav>
-        <form autoComplete="off" onSubmit={onCreateServer}>
-          <input
-            placeholder="New server name"
-            value={serverName}
-            onChange={(event) => setServerName(event.target.value)}
-          />
-          <button type="submit">Create</button>
-        </form>
-        <form autoComplete="off" onSubmit={onJoinInvite}>
-          <input
-            placeholder="Invite code"
-            value={joinInviteCode}
-            onChange={(event) => setJoinInviteCode(event.target.value)}
-          />
-          <button type="submit">Join</button>
-        </form>
-        <form autoComplete="off" onSubmit={onCreateInvite}>
-          <select
-            value={inviteRoleToGrant}
-            onChange={(event) => setInviteRoleToGrant(event.target.value as 'admin' | 'member')}
+        <header className="sidebar-tabs">
+          <button
+            className={leftRailTab === 'servers' ? 'item active' : 'item'}
+            onClick={() => setLeftRailTab('servers')}
+            type="button"
           >
-            <option value="member">Grant member</option>
-            <option value="admin">Grant admin</option>
-          </select>
-          <input
-            placeholder="Max uses (optional)"
-            type="number"
-            min="1"
-            value={inviteMaxUses}
-            onChange={(event) => setInviteMaxUses(event.target.value)}
-          />
-          <input
-            placeholder="Expires in hours"
-            type="number"
-            min="1"
-            value={inviteExpiresHours}
-            onChange={(event) => setInviteExpiresHours(event.target.value)}
-          />
-          <button type="submit" disabled={!selectedServerId}>
-            Create Invite
+            Servers
           </button>
-        </form>
-        {invites.length > 0 ? (
-          <div className="mini-list">
-            {invites.slice(0, 5).map((invite) => (
-              <code key={invite.id}>
-                {invite.code} ({invite.role_to_grant}, {invite.uses_count})
-              </code>
-            ))}
-          </div>
+          <button className={leftRailTab === 'dms' ? 'item active' : 'item'} onClick={() => setLeftRailTab('dms')} type="button">
+            DMs
+          </button>
+          <button
+            className={leftRailTab === 'channels' ? 'item active' : 'item'}
+            onClick={() => setLeftRailTab('channels')}
+            type="button"
+          >
+            Channels
+          </button>
+        </header>
+        {leftRailTab === 'servers' ? (
+          <>
+            <nav>
+              {servers.map((server) => (
+                <button
+                  className={server.id === selectedServerId ? 'item active' : 'item'}
+                  key={server.id}
+                  onClick={() => void onSelectServer(server.id)}
+                >
+                  {server.name}
+                </button>
+              ))}
+            </nav>
+            <form autoComplete="off" onSubmit={onCreateServer}>
+              <input
+                placeholder="New server name"
+                value={serverName}
+                onChange={(event) => setServerName(event.target.value)}
+              />
+              <button type="submit">Create</button>
+            </form>
+            <form autoComplete="off" onSubmit={onJoinInvite}>
+              <input
+                placeholder="Invite code"
+                value={joinInviteCode}
+                onChange={(event) => setJoinInviteCode(event.target.value)}
+              />
+              <button type="submit">Join</button>
+            </form>
+            <form autoComplete="off" onSubmit={onCreateInvite}>
+              <select
+                value={inviteRoleToGrant}
+                onChange={(event) => setInviteRoleToGrant(event.target.value as 'admin' | 'member')}
+              >
+                <option value="member">Grant member</option>
+                <option value="admin">Grant admin</option>
+              </select>
+              <input
+                placeholder="Max uses (optional)"
+                type="number"
+                min="1"
+                value={inviteMaxUses}
+                onChange={(event) => setInviteMaxUses(event.target.value)}
+              />
+              <input
+                placeholder="Expires in hours"
+                type="number"
+                min="1"
+                value={inviteExpiresHours}
+                onChange={(event) => setInviteExpiresHours(event.target.value)}
+              />
+              <button type="submit" disabled={!selectedServerId}>
+                Create Invite
+              </button>
+            </form>
+            {invites.length > 0 ? (
+              <div className="mini-list">
+                {invites.slice(0, 5).map((invite) => (
+                  <code key={invite.id}>
+                    {invite.code} ({invite.role_to_grant}, {invite.uses_count})
+                  </code>
+                ))}
+              </div>
+            ) : null}
+            {members.length > 0 ? (
+              <div className="mini-list">
+                {members.slice(0, 6).map((member) => (
+                  <span key={member.user_id}>
+                    {member.name} ({member.role})
+                  </span>
+                ))}
+              </div>
+            ) : null}
+          </>
         ) : null}
-        {members.length > 0 ? (
-          <div className="mini-list">
-            {members.slice(0, 6).map((member) => (
-              <span key={member.user_id}>
-                {member.name} ({member.role})
-              </span>
-            ))}
-          </div>
+        {leftRailTab === 'dms' ? (
+          <>
+            <p className="panel-note">Direct messages are private chats between two people.</p>
+            <div className="mini-list">
+              {members.length === 0 ? <span>No contacts yet.</span> : null}
+              {members.map((member) => (
+                <span key={member.user_id}>
+                  @{member.handle}
+                </span>
+              ))}
+            </div>
+          </>
+        ) : null}
+        {leftRailTab === 'channels' ? (
+          <>
+            <p className="panel-note">Quick channel picker.</p>
+            <nav>
+              {channels.map((channel) => {
+                const unreadCount = unreadCountByChannel.get(channel.id) ?? 0;
+                const statusClass = unreadCount > 0 ? 'unread-channel' : 'read-channel';
+                const activeClass = channel.id === selectedChannelId ? ' active' : '';
+                return (
+                  <button
+                    className={`item channel-item ${statusClass}${activeClass}`}
+                    key={channel.id}
+                    onClick={() => void onSelectChannel(channel.id)}
+                  >
+                    <span>#{channel.name}</span>
+                    {unreadCount > 0 ? <span className="channel-unread-count">{unreadCount}</span> : null}
+                  </button>
+                );
+              })}
+            </nav>
+          </>
         ) : null}
       </aside>
 
