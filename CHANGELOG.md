@@ -25,5 +25,7 @@ All notable changes to this project are tracked here.
 - Improved web viewport stability and form autocomplete behavior
 - Fixed chat row sizing and sidebar overflow in wide layouts
 - Added collapsible right-sidebar panels and tighter message feed density
+- Swapped web theme to Glaucous/Periwinkle/Light Yellow/Banana Cream/Tomato palette
+- Reduced control sizing across web UI (smaller radii, spacing, and component density)
 - Web MVP (React + Vite shell with auth, server/channel/message flows)
 - Docker Compose stack and setup/version documentation

@@ -27,6 +27,8 @@
 - Fixed chat/main/sidebar row height calculations and overflow behavior
 - Converted right-rail utility sections to collapsible panels to reduce UI crowding
 - Tightened message card/feed spacing for improved readability density
+- Re-themed UI colors to requested palette (`#7776BC`, `#CDC7E5`, `#FFFBDB`, `#FFEC51`, `#FF674D`)
+- Applied compact mode styling pass (smaller corners, buttons, paddings, and list density)
 - Added Docker Compose for app + postgres + redis
 - Added API and setup docs plus version tracking
 - Validation status: runtime checks blocked in this environment (`docker`, `node`, and `pnpm` are unavailable in sandbox)
