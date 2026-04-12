@@ -54,6 +54,14 @@ body {
   font-size: 1.7rem;
 }
 
+.auth-logo {
+  width: 72px;
+  height: 72px;
+  object-fit: contain;
+  margin: 0 auto 0.3rem;
+  display: block;
+}
+
 .auth-card p {
   color: var(--text-muted);
   margin-bottom: 1rem;
@@ -220,6 +228,22 @@ button.ghost {
 .rail {
   padding: 0.5rem;
   justify-content: flex-start;
+}
+
+.rail-brand {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.85);
+  padding: 0.2rem;
+  margin-bottom: 0.45rem;
+}
+
+.rail-brand img {
+  width: 100%;
+  height: 44px;
+  display: block;
+  object-fit: contain;
 }
 
 .rail-nav {

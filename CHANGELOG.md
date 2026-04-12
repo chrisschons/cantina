@@ -56,5 +56,8 @@ All notable changes to this project are tracked here.
 - Expanded library pane to card-based rows with thumbnails, channel context, and richer metadata
 - Added bulk library selection helpers (`Select Filtered`, `Clear Selection`)
 - Added OGP fallback metadata in library cards (preview title + description + image when available)
+- Added temporary Tin Can pictogram branding in auth and left rail UI
+- Added generated browser favicon assets (`favicon.ico`, `favicon-192.png`, `favicon-512.png`)
+- Wired favicon links in web `index.html`
 - Web MVP (React + Vite shell with auth, server/channel/message flows)
 - Docker Compose stack and setup/version documentation

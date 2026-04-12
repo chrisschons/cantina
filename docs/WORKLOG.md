@@ -11,6 +11,9 @@
 - Added bulk selection controls (`Select Filtered`, `Clear Selection`)
 - Added drag-and-drop reordering for selected collection scope (manual sort mode), with persisted backend order
 - Added OGP title/description fallback display in library cards when item metadata is missing
+- Added temporary Tin Can logo usage in auth card and left rail brand tile
+- Generated tab icon assets from the provided pictogram (`favicon.ico`, `favicon-192.png`, `favicon-512.png`)
+- Updated web head metadata to reference favicon assets
 
 ## 2026-04-12
 

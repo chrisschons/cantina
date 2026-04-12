@@ -1094,6 +1094,7 @@ export function App() {
     return (
       <main className="auth-shell">
         <section className="auth-card">
+          <img className="auth-logo" src="/tincan-logo.png" alt="Tincan logo" />
           <h1>Tincan</h1>
           <p>Private chat for your own people.</p>
           <form autoComplete="off" onSubmit={onAuthSubmit}>
@@ -1143,6 +1144,9 @@ export function App() {
   return (
     <main className="app-shell">
       <aside className="sidebar rail">
+        <div className="rail-brand" aria-label="Tincan">
+          <img src="/tincan-logo.png" alt="Tincan logo" />
+        </div>
         <nav className="rail-nav">
           <button
             aria-label="Servers"
