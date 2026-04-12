@@ -22,5 +22,8 @@ All notable changes to this project are tracked here.
 - Added role-gated authorization rules for admin/owner actions
 - Added basic web UI for invite creation/join and member visibility
 - Added executable permissions matrix integration test script
+- Improved web viewport stability and form autocomplete behavior
+- Fixed chat row sizing and sidebar overflow in wide layouts
+- Added collapsible right-sidebar panels and tighter message feed density
 - Web MVP (React + Vite shell with auth, server/channel/message flows)
 - Docker Compose stack and setup/version documentation

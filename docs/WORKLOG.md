@@ -23,6 +23,10 @@
 - Added owner-only endpoint to promote/demote member roles
 - Added automated permissions matrix integration script (`apps/api/scripts/permissions-matrix.ts`)
 - Implemented web MVP in `apps/web` with auth and channel/message UI
+- Stabilized layout sizing to avoid panel overlap in desktop viewport
+- Fixed chat/main/sidebar row height calculations and overflow behavior
+- Converted right-rail utility sections to collapsible panels to reduce UI crowding
+- Tightened message card/feed spacing for improved readability density
 - Added Docker Compose for app + postgres + redis
 - Added API and setup docs plus version tracking
 - Validation status: runtime checks blocked in this environment (`docker`, `node`, and `pnpm` are unavailable in sandbox)
