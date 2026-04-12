@@ -689,7 +689,7 @@ export function App() {
         <section className="auth-card">
           <h1>Tincan</h1>
           <p>Private chat for your own people.</p>
-          <form onSubmit={onAuthSubmit}>
+          <form autoComplete="off" onSubmit={onAuthSubmit}>
             {mode === 'register' ? (
               <>
                 <input
@@ -750,7 +750,7 @@ export function App() {
             </button>
           ))}
         </nav>
-        <form onSubmit={onCreateServer}>
+        <form autoComplete="off" onSubmit={onCreateServer}>
           <input
             placeholder="New server name"
             value={serverName}
@@ -758,7 +758,7 @@ export function App() {
           />
           <button type="submit">Create</button>
         </form>
-        <form onSubmit={onJoinInvite}>
+        <form autoComplete="off" onSubmit={onJoinInvite}>
           <input
             placeholder="Invite code"
             value={joinInviteCode}
@@ -766,7 +766,7 @@ export function App() {
           />
           <button type="submit">Join</button>
         </form>
-        <form onSubmit={onCreateInvite}>
+        <form autoComplete="off" onSubmit={onCreateInvite}>
           <select
             value={inviteRoleToGrant}
             onChange={(event) => setInviteRoleToGrant(event.target.value as 'admin' | 'member')}
@@ -827,7 +827,7 @@ export function App() {
             </button>
           ))}
         </nav>
-        <form onSubmit={onCreateChannel}>
+        <form autoComplete="off" onSubmit={onCreateChannel}>
           <input
             placeholder="New channel"
             value={channelName}
@@ -844,7 +844,7 @@ export function App() {
             Logout
           </button>
         </header>
-        <form className="channel-pref" onSubmit={onSaveChannelPreference}>
+        <form autoComplete="off" className="channel-pref" onSubmit={onSaveChannelPreference}>
           <label>
             Mode
             <select value={channelMode} onChange={(event) => setChannelMode(event.target.value as 'hidden' | 'passive' | 'active')}>
@@ -920,7 +920,7 @@ export function App() {
           ))}
         </div>
 
-        <form className="composer" onSubmit={onSendMessage}>
+        <form autoComplete="off" className="composer" onSubmit={onSendMessage}>
           <div className="composer-main">
             <input
               placeholder="Write a message"
@@ -959,7 +959,7 @@ export function App() {
         </ul>
         <section className="commands-panel">
           <h3>Search</h3>
-          <form onSubmit={onSearchMessages}>
+          <form autoComplete="off" onSubmit={onSearchMessages}>
             <input
               placeholder="Search messages"
               value={searchQuery}
@@ -979,7 +979,7 @@ export function App() {
         </section>
         <section className="commands-panel">
           <h3>Library</h3>
-          <form onSubmit={onCreateCollection}>
+          <form autoComplete="off" onSubmit={onCreateCollection}>
             <input
               placeholder="New collection name"
               value={collectionName}
@@ -1024,7 +1024,7 @@ export function App() {
         </section>
         <section className="commands-panel">
           <h3>My Commands</h3>
-          <form onSubmit={onCreateUserCommand}>
+          <form autoComplete="off" onSubmit={onCreateUserCommand}>
             <input
               placeholder="/command"
               value={userCommandForm.command}
@@ -1045,7 +1045,7 @@ export function App() {
         </section>
         <section className="commands-panel">
           <h3>Server Commands</h3>
-          <form onSubmit={onCreateServerCommand}>
+          <form autoComplete="off" onSubmit={onCreateServerCommand}>
             <input
               placeholder="/command"
               value={serverCommandForm.command}
@@ -1077,7 +1077,7 @@ export function App() {
                 </article>
               ))}
             </div>
-            <form onSubmit={onSendThreadMessage}>
+            <form autoComplete="off" onSubmit={onSendThreadMessage}>
               <input
                 placeholder="Reply in thread"
                 value={threadComposer}
