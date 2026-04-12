@@ -1031,11 +1031,19 @@ export function App() {
                   {extractUrls(message.body).map((url) => {
                     const preview = linkPreviews[url];
                     return (
-                      <a className="preview-card" href={url} key={`${message.id}-${url}`} rel="noreferrer" target="_blank">
+                      <a
+                        className={preview?.image_url ? 'preview-card has-image' : 'preview-card'}
+                        href={url}
+                        key={`${message.id}-${url}`}
+                        rel="noreferrer"
+                        target="_blank"
+                      >
                         {preview?.image_url ? <img src={preview.image_url} alt={preview?.title || 'Link preview image'} /> : null}
-                        <strong>{preview?.title || preview?.site_name || url}</strong>
-                        {preview?.description ? <span className="preview-description">{preview.description}</span> : null}
-                        <span className="preview-url">{url}</span>
+                        <div className="preview-copy">
+                          <strong>{preview?.title || preview?.site_name || url}</strong>
+                          {preview?.description ? <span className="preview-description">{preview.description}</span> : null}
+                          <span className="preview-url">{url}</span>
+                        </div>
                       </a>
                     );
                   })}

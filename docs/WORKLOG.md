@@ -51,6 +51,8 @@
 - Moved account chip + logout into top-right global header zone
 - Changed OGP image rendering to fixed-height + original aspect ratio preservation (`object-fit: contain`)
 - Added explicit OGP title/description emphasis with source URL shown in preview cards
+- Switched OGP card composition to side-by-side layout (thumbnail left, text right)
+- Reduced OGP thumbnail height from 140px to 105px (~75%) while preserving original aspect ratio
 - Added Docker Compose for app + postgres + redis
 - Added API and setup docs plus version tracking
 - Validation status: runtime checks blocked in this environment (`docker`, `node`, and `pnpm` are unavailable in sandbox)
