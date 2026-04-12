@@ -426,19 +426,6 @@ button.ghost {
   background: rgba(119, 118, 188, 0.12);
 }
 
-.unread ul {
-  margin: 0;
-  padding-left: 1rem;
-  display: grid;
-  gap: 0.4rem;
-}
-
-.unread li {
-  display: grid;
-  gap: 0.12rem;
-  color: var(--text-muted);
-}
-
 .commands-panel {
   margin-top: 0.55rem;
   border-top: 1px dashed var(--border);

@@ -1008,20 +1008,6 @@ export function App() {
       </section>
 
       <aside className="sidebar unread">
-        <header>
-          <h2>Unread</h2>
-        </header>
-        {unread.length === 0 ? <p>All caught up.</p> : null}
-        <ul>
-          {unread.map((item) => (
-            <li key={`${item.server_id}-${item.channel_id}`}>
-              <strong>{item.server_name}</strong>
-              <span>
-                #{item.channel_name} ({item.unread_count})
-              </span>
-            </li>
-          ))}
-        </ul>
         <details className="commands-panel" open>
           <summary>Search</summary>
           <form autoComplete="off" onSubmit={onSearchMessages}>

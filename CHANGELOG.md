@@ -32,5 +32,6 @@ All notable changes to this project are tracked here.
 - Added per-channel unread count badges in channel list rows
 - Added “Unread only” channel filter toggle and read/unread text contrast styling
 - Fixed media posting regression by allowing image/file-only messages (without text body)
+- Removed redundant right-rail unread summary block (now consolidated in channel list)
 - Web MVP (React + Vite shell with auth, server/channel/message flows)
 - Docker Compose stack and setup/version documentation
