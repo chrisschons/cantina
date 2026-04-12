@@ -49,6 +49,8 @@
 - Added rendering of OGP preview images in link cards when image metadata exists
 - Reordered middle layout so search/library is server-scoped above channel title/settings
 - Moved account chip + logout into top-right global header zone
+- Changed OGP image rendering to fixed-height + original aspect ratio preservation (`object-fit: contain`)
+- Added explicit OGP title/description emphasis with source URL shown in preview cards
 - Added Docker Compose for app + postgres + redis
 - Added API and setup docs plus version tracking
 - Validation status: runtime checks blocked in this environment (`docker`, `node`, and `pnpm` are unavailable in sandbox)

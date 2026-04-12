@@ -1033,8 +1033,9 @@ export function App() {
                     return (
                       <a className="preview-card" href={url} key={`${message.id}-${url}`} rel="noreferrer" target="_blank">
                         {preview?.image_url ? <img src={preview.image_url} alt={preview?.title || 'Link preview image'} /> : null}
-                        <strong>{preview?.title || url}</strong>
-                        {preview?.description ? <span>{preview.description}</span> : null}
+                        <strong>{preview?.title || preview?.site_name || url}</strong>
+                        {preview?.description ? <span className="preview-description">{preview.description}</span> : null}
+                        <span className="preview-url">{url}</span>
                       </a>
                     );
                   })}

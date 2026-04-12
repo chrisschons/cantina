@@ -44,5 +44,7 @@ All notable changes to this project are tracked here.
 - Added OGP preview thumbnails when `og:image` metadata is available
 - Repositioned search/library toolbar above channel header to reflect server-level scope
 - Moved account profile/logout to top-right global header area
+- Updated OGP thumbnails to preserve original image aspect ratio at fixed height (no crop)
+- Expanded link cards to show title, description, and source URL
 - Web MVP (React + Vite shell with auth, server/channel/message flows)
 - Docker Compose stack and setup/version documentation
