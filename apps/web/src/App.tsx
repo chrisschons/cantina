@@ -933,18 +933,25 @@ export function App() {
       </aside>
 
       <section className="chat">
-        <header className="chat-header">
-          <h2>{selectedChannel ? `#${selectedChannel.name}` : 'Pick a channel'}</h2>
-          <div className="chat-header-actions">
+        <header className="chat-global-header">
+          <div className="chat-toolbar">
+            <form autoComplete="off" className="chat-search" onSubmit={onSearchMessages}>
+              <input
+                placeholder="Search messages"
+                value={searchQuery}
+                onChange={(event) => setSearchQuery(event.target.value)}
+              />
+              <button type="submit">Search</button>
+            </form>
             <button
-              aria-label="Open channel settings"
-              className="ghost mini icon-button"
-              disabled={!selectedChannelId}
-              onClick={() => setChannelSettingsOpen((prev) => !prev)}
+              className={centerPane === 'library' ? '' : 'ghost'}
+              onClick={() => setCenterPane(centerPane === 'chat' ? 'library' : 'chat')}
               type="button"
             >
-              ⚙
+              {centerPane === 'chat' ? 'Library' : 'Chat'}
             </button>
+          </div>
+          <div className="chat-header-actions top-right">
             <div className="profile-chip">
               <strong>{user.name}</strong>
               <span>@{user.handle}</span>
@@ -954,19 +961,6 @@ export function App() {
             </button>
           </div>
         </header>
-        <div className="chat-toolbar">
-          <form autoComplete="off" className="chat-search" onSubmit={onSearchMessages}>
-            <input
-              placeholder="Search messages"
-              value={searchQuery}
-              onChange={(event) => setSearchQuery(event.target.value)}
-            />
-            <button type="submit">Search</button>
-          </form>
-          <button className={centerPane === 'library' ? '' : 'ghost'} onClick={() => setCenterPane(centerPane === 'chat' ? 'library' : 'chat')} type="button">
-            {centerPane === 'chat' ? 'Library' : 'Chat'}
-          </button>
-        </div>
         {searchResults.length > 0 ? (
           <div className="chat-search-results">
             <div className="search-results">
@@ -980,6 +974,20 @@ export function App() {
             </div>
           </div>
         ) : null}
+        <header className="chat-header">
+          <h2>{selectedChannel ? `#${selectedChannel.name}` : 'Pick a channel'}</h2>
+          <div className="chat-channel-actions">
+            <button
+              aria-label="Open channel settings"
+              className="ghost mini icon-button"
+              disabled={!selectedChannelId}
+              onClick={() => setChannelSettingsOpen((prev) => !prev)}
+              type="button"
+            >
+              ⚙
+            </button>
+          </div>
+        </header>
         {channelSettingsOpen ? (
           <form autoComplete="off" className="channel-settings-panel" onSubmit={onSaveChannelPreference}>
             <label>

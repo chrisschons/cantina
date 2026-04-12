@@ -267,6 +267,15 @@ button.ghost {
   overflow: hidden;
 }
 
+.chat-global-header {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.45rem;
+  align-items: center;
+  padding: 0.65rem;
+  border-bottom: 1px solid var(--border);
+}
+
 .chat-header {
   display: flex;
   align-items: center;
@@ -279,6 +288,16 @@ button.ghost {
   display: flex;
   align-items: center;
   gap: 0.38rem;
+}
+
+.chat-channel-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.top-right {
+  justify-content: flex-end;
 }
 
 .profile-chip {
@@ -335,8 +354,6 @@ button.ghost {
   display: grid;
   grid-template-columns: 1fr auto;
   gap: 0.45rem;
-  padding: 0.55rem 0.65rem;
-  border-bottom: 1px solid var(--border);
   align-items: center;
 }
 
@@ -665,6 +682,10 @@ button.ghost {
   .chat-header-actions {
     width: 100%;
     justify-content: flex-end;
+  }
+
+  .chat-global-header {
+    grid-template-columns: 1fr;
   }
 
   .channel-settings-panel {

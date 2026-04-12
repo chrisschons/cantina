@@ -47,6 +47,8 @@
 - Moved search into middle toolbar above chat and removed search/library duplication from right sidebar
 - Added middle-pane toggle button to swap chat view with a starter library workspace
 - Added rendering of OGP preview images in link cards when image metadata exists
+- Reordered middle layout so search/library is server-scoped above channel title/settings
+- Moved account chip + logout into top-right global header zone
 - Added Docker Compose for app + postgres + redis
 - Added API and setup docs plus version tracking
 - Validation status: runtime checks blocked in this environment (`docker`, `node`, and `pnpm` are unavailable in sandbox)
