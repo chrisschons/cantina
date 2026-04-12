@@ -59,5 +59,7 @@ All notable changes to this project are tracked here.
 - Added temporary Tin Can pictogram branding in auth and left rail UI
 - Added generated browser favicon assets (`favicon.ico`, `favicon-192.png`, `favicon-512.png`)
 - Wired favicon links in web `index.html`
+- Fixed selected-collection library cards to hydrate missing preview/channel metadata from server library cache
+- Fixed library card text rendering to decode HTML entities in title/description content
 - Web MVP (React + Vite shell with auth, server/channel/message flows)
 - Docker Compose stack and setup/version documentation

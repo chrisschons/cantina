@@ -14,6 +14,8 @@
 - Added temporary Tin Can logo usage in auth card and left rail brand tile
 - Generated tab icon assets from the provided pictogram (`favicon.ico`, `favicon-192.png`, `favicon-512.png`)
 - Updated web head metadata to reference favicon assets
+- Fixed selected-collection card hydration by merging collection items with cached all-library metadata by `id`
+- Decoded HTML entities for library title/description display (e.g. `&quot;`, `&#39;`, `&amp;`)
 
 ## 2026-04-12
 

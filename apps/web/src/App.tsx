@@ -81,6 +81,18 @@ function extractUrls(text: string) {
   return [...new Set(matches)];
 }
 
+function decodeHtmlEntities(value?: string | null) {
+  if (!value) {
+    return '';
+  }
+  if (typeof window === 'undefined' || typeof document === 'undefined') {
+    return value;
+  }
+  const textarea = document.createElement('textarea');
+  textarea.innerHTML = value;
+  return textarea.value;
+}
+
 function getYouTubeEmbedUrl(rawUrl: string) {
   try {
     const parsed = new URL(rawUrl);
@@ -280,9 +292,37 @@ export function App() {
     [channels, showUnreadOnly, unreadCountByChannel]
   );
 
+  const libraryItemsById = useMemo(() => {
+    const map = new Map<string, LibraryItem>();
+    for (const item of libraryItems) {
+      map.set(item.id, item);
+    }
+    return map;
+  }, [libraryItems]);
+
+  const enrichedCollectionItems = useMemo(() => {
+    return collectionItems.map((item) => {
+      const base = libraryItemsById.get(item.id);
+      if (!base) {
+        return item;
+      }
+      return {
+        ...base,
+        ...item,
+        title: item.title ?? base.title,
+        description: item.description ?? base.description,
+        preview_title: item.preview_title ?? base.preview_title,
+        preview_description: item.preview_description ?? base.preview_description,
+        preview_image_url: item.preview_image_url ?? base.preview_image_url,
+        media_url: item.media_url ?? base.media_url,
+        channel_name: item.channel_name ?? base.channel_name
+      };
+    });
+  }, [collectionItems, libraryItemsById]);
+
   const activeLibraryItems = useMemo(
-    () => (libraryScope === 'collection' && selectedCollectionId ? collectionItems : libraryItems),
-    [libraryScope, selectedCollectionId, collectionItems, libraryItems]
+    () => (libraryScope === 'collection' && selectedCollectionId ? enrichedCollectionItems : libraryItems),
+    [libraryScope, selectedCollectionId, enrichedCollectionItems, libraryItems]
   );
   const canReorderCollection = libraryScope === 'collection' && !!selectedCollectionId && librarySort === 'manual';
 
@@ -1614,8 +1654,10 @@ export function App() {
               {filteredLibraryItems.slice(0, 100).map((item) => {
                 const thumbnail = getLibraryThumbnail(item);
                 const selected = selectedLibraryItemIds.includes(item.id);
-                const title = item.title || item.preview_title || item.url || item.media_url || 'Untitled item';
-                const description = item.description || item.preview_description;
+                const rawTitle = item.title || item.preview_title || item.url || item.media_url || 'Untitled item';
+                const rawDescription = item.description || item.preview_description;
+                const title = decodeHtmlEntities(rawTitle);
+                const description = decodeHtmlEntities(rawDescription);
                 return (
                   <article
                     className={`library-card${selected ? ' selected' : ''}${dragOverLibraryItemId === item.id ? ' drag-over' : ''}`}
