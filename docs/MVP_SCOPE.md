@@ -13,18 +13,19 @@ This scope was selected to maximize a usable private-community chat baseline qui
 5. Message posting and retrieval by channel
 6. Emoji reaction toggle
 7. Custom slash commands (user and server scope) with command expansion at message send time
-8. Per-channel read watermark endpoint + unread summary query
-9. Docker-first local deployment
+8. Thread replies (single thread depth per root message)
+9. Media upload and message attachment linking (local storage in dev)
+10. Per-channel read watermark endpoint + unread summary query
+11. Channel preference mode + optional snooze (`hidden`, `passive`, `active`)
+12. Docker-first local deployment
 
 ## Deferred
 
-1. Threads and deep reply UX
-2. Slash commands and custom command execution
-3. Rich media upload, OGP scraping, and gallery/library UI
-4. Notification modes UI and timed snoozes
-5. Full-text search
-6. AI librarian metadata generation
-7. Federation and module marketplace
+1. OGP scraping and rich link cards
+2. Library/gallery UI and metadata pipelines
+3. Full-text search
+4. AI librarian metadata generation
+5. Federation and module marketplace
 
 ## Rationale
 

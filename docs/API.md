@@ -18,6 +18,9 @@
 - `GET /api/channels/:channelId/messages`
 - `POST /api/channels/:channelId/messages`
 - `POST /api/messages/:messageId/reactions/toggle`
+- `GET /api/messages/:messageId/thread/messages`
+- `POST /api/messages/:messageId/thread/messages`
+- `POST /api/channels/:channelId/uploads`
 
 ## Custom Slash Commands
 
@@ -30,3 +33,5 @@
 
 - `POST /api/channels/:channelId/read`
 - `GET /api/unread`
+- `GET /api/channels/:channelId/preferences`
+- `PUT /api/channels/:channelId/preferences`

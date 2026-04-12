@@ -1,6 +1,13 @@
+import { createWriteStream } from 'node:fs';
+import { mkdir } from 'node:fs/promises';
+import { randomUUID } from 'node:crypto';
+import { pipeline } from 'node:stream/promises';
+import { resolve } from 'node:path';
+
 import { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 
+import { config } from '../config.js';
 import { pool } from '../db/pool.js';
 import { authGuard } from '../lib/auth-guard.js';
 import { slugify } from '../lib/slugify.js';
@@ -16,7 +23,8 @@ const createChannelSchema = z.object({
 
 const createMessageSchema = z.object({
   body: z.string().min(1).max(4000),
-  replyToMessageId: z.string().uuid().optional()
+  replyToMessageId: z.string().uuid().optional(),
+  mediaItemIds: z.array(z.string().uuid()).max(10).optional()
 });
 
 const markReadSchema = z.object({
@@ -25,6 +33,16 @@ const markReadSchema = z.object({
 
 const toggleReactionSchema = z.object({
   emoji: z.string().min(1).max(20)
+});
+
+const threadMessageSchema = z.object({
+  body: z.string().min(1).max(4000),
+  mediaItemIds: z.array(z.string().uuid()).max(10).optional()
+});
+
+const updatePreferenceSchema = z.object({
+  mode: z.enum(['hidden', 'passive', 'active']),
+  snoozedUntil: z.string().datetime().optional().nullable()
 });
 
 const createCommandSchema = z.object({
@@ -36,6 +54,24 @@ const createCommandSchema = z.object({
     .refine((value) => /^[a-z0-9_-]+$/.test(value), 'Command can only use a-z, 0-9, underscore, and dash'),
   responseText: z.string().min(1).max(4000)
 });
+
+async function requireServerMembership(userId: string, serverId: string) {
+  const membership = await pool.query('SELECT 1 FROM memberships WHERE user_id = $1 AND server_id = $2', [userId, serverId]);
+  return membership.rowCount !== 0;
+}
+
+async function loadChannel(channelId: string) {
+  const channelResult = await pool.query(
+    `
+    SELECT c.id, c.server_id
+    FROM channels c
+    WHERE c.id = $1
+    `,
+    [channelId]
+  );
+
+  return channelResult.rowCount ? channelResult.rows[0] : null;
+}
 
 export async function registerAppRoutes(app: FastifyInstance) {
   app.get('/api/health', async () => ({ status: 'ok' }));
@@ -190,6 +226,125 @@ export async function registerAppRoutes(app: FastifyInstance) {
     }
   });
 
+  app.get('/api/channels/:channelId/preferences', { preHandler: authGuard }, async (request, reply) => {
+    const params = request.params as { channelId: string };
+    const userId = request.authUser!.userId;
+    const channel = await loadChannel(params.channelId);
+
+    if (!channel) {
+      return reply.code(404).send({ error: 'Channel not found' });
+    }
+
+    const isMember = await requireServerMembership(userId, channel.server_id);
+
+    if (!isMember) {
+      return reply.code(403).send({ error: 'Not a server member' });
+    }
+
+    const result = await pool.query(
+      `
+      SELECT mode, snoozed_until, updated_at
+      FROM channel_preferences
+      WHERE user_id = $1 AND channel_id = $2
+      `,
+      [userId, params.channelId]
+    );
+
+    return {
+      preference:
+        result.rowCount === 0
+          ? { mode: 'passive', snoozed_until: null, updated_at: null }
+          : result.rows[0]
+    };
+  });
+
+  app.put('/api/channels/:channelId/preferences', { preHandler: authGuard }, async (request, reply) => {
+    const params = request.params as { channelId: string };
+    const parsed = updatePreferenceSchema.safeParse(request.body);
+
+    if (!parsed.success) {
+      return reply.code(400).send({ error: parsed.error.flatten() });
+    }
+
+    const userId = request.authUser!.userId;
+    const channel = await loadChannel(params.channelId);
+
+    if (!channel) {
+      return reply.code(404).send({ error: 'Channel not found' });
+    }
+
+    const isMember = await requireServerMembership(userId, channel.server_id);
+
+    if (!isMember) {
+      return reply.code(403).send({ error: 'Not a server member' });
+    }
+
+    const snoozedUntil = parsed.data.snoozedUntil ? new Date(parsed.data.snoozedUntil).toISOString() : null;
+
+    await pool.query(
+      `
+      INSERT INTO channel_preferences (user_id, channel_id, mode, snoozed_until, updated_at)
+      VALUES ($1, $2, $3, $4, NOW())
+      ON CONFLICT (user_id, channel_id)
+      DO UPDATE SET mode = EXCLUDED.mode, snoozed_until = EXCLUDED.snoozed_until, updated_at = NOW()
+      `,
+      [userId, params.channelId, parsed.data.mode, snoozedUntil]
+    );
+
+    return { ok: true };
+  });
+
+  app.post('/api/channels/:channelId/uploads', { preHandler: authGuard }, async (request, reply) => {
+    const params = request.params as { channelId: string };
+    const userId = request.authUser!.userId;
+    const channel = await loadChannel(params.channelId);
+
+    if (!channel) {
+      return reply.code(404).send({ error: 'Channel not found' });
+    }
+
+    const isMember = await requireServerMembership(userId, channel.server_id);
+
+    if (!isMember) {
+      return reply.code(403).send({ error: 'Not a server member' });
+    }
+
+    const part = await request.file();
+
+    if (!part) {
+      return reply.code(400).send({ error: 'Expected a file upload' });
+    }
+
+    const safeName = part.filename.replace(/[^a-zA-Z0-9._-]/g, '_');
+    const key = `${Date.now()}-${randomUUID()}-${safeName}`;
+    const destination = resolve(process.cwd(), config.uploadsDir, key);
+
+    await mkdir(resolve(process.cwd(), config.uploadsDir), { recursive: true });
+    await pipeline(part.file, createWriteStream(destination));
+
+    const result = await pool.query(
+      `
+      INSERT INTO media_items (
+        uploader_user_id, server_id, channel_id, original_name, mime_type, size_bytes, storage_path, public_url
+      )
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      RETURNING id, original_name, mime_type, size_bytes, public_url, created_at
+      `,
+      [
+        userId,
+        channel.server_id,
+        channel.id,
+        part.filename,
+        part.mimetype ?? 'application/octet-stream',
+        part.file.bytesRead,
+        key,
+        `${config.uploadsBaseUrl}/${key}`
+      ]
+    );
+
+    return reply.code(201).send({ media: result.rows[0] });
+  });
+
   app.get('/api/servers/:serverId/commands', { preHandler: authGuard }, async (request, reply) => {
     const params = request.params as { serverId: string };
     const userId = request.authUser!.userId;
@@ -328,10 +483,31 @@ export async function registerAppRoutes(app: FastifyInstance) {
 
     const messages = await pool.query(
       `
-      SELECT m.id, m.channel_id, m.author_user_id, m.body, m.reply_to_message_id,
+      SELECT m.id, m.channel_id, m.author_user_id, m.body, m.reply_to_message_id, m.thread_root_message_id,
              m.edited_at, m.created_at,
              u.handle AS author_handle,
              u.name AS author_name,
+             (
+               SELECT COUNT(*)::int
+               FROM messages tm
+               WHERE tm.thread_root_message_id = m.id
+             ) AS thread_reply_count,
+             COALESCE(
+               (
+                 SELECT json_agg(
+                   json_build_object(
+                     'id', mi.id,
+                     'mime_type', mi.mime_type,
+                     'original_name', mi.original_name,
+                     'public_url', mi.public_url
+                   )
+                 )
+                 FROM message_attachments ma
+                 JOIN media_items mi ON mi.id = ma.media_item_id
+                 WHERE ma.message_id = m.id
+               ),
+               '[]'::json
+             ) AS attachments,
              COALESCE(
                (
                  SELECT json_agg(
@@ -350,6 +526,7 @@ export async function registerAppRoutes(app: FastifyInstance) {
       FROM messages m
       JOIN users u ON u.id = m.author_user_id
       WHERE m.channel_id = $1
+        AND m.thread_root_message_id IS NULL
         AND ($2::timestamptz IS NULL OR m.created_at < $2)
       ORDER BY m.created_at DESC
       LIMIT $3
@@ -398,7 +575,7 @@ export async function registerAppRoutes(app: FastifyInstance) {
 
     if (finalBody.startsWith('/')) {
       const [rawCommand, ...argParts] = finalBody.trim().split(/\s+/);
-      const commandName = rawCommand.replace(/^\//, '').toLowerCase();
+      const commandName = (rawCommand ?? '').replace(/^\//, '').toLowerCase();
       const argString = argParts.join(' ');
 
       const commandLookup = await pool.query(
@@ -430,7 +607,157 @@ export async function registerAppRoutes(app: FastifyInstance) {
       [channel.server_id, params.channelId, userId, finalBody, parsed.data.replyToMessageId ?? null]
     );
 
+    if (parsed.data.mediaItemIds && parsed.data.mediaItemIds.length > 0) {
+      const validMedia = await pool.query(
+        `
+        SELECT id
+        FROM media_items
+        WHERE channel_id = $1
+          AND id = ANY($2::uuid[])
+          AND uploader_user_id = $3
+        `,
+        [params.channelId, parsed.data.mediaItemIds, userId]
+      );
+
+      if ((validMedia.rowCount ?? 0) > 0) {
+        for (const mediaRow of validMedia.rows) {
+          await pool.query(
+            `
+            INSERT INTO message_attachments (message_id, media_item_id)
+            VALUES ($1, $2)
+            ON CONFLICT DO NOTHING
+            `,
+            [result.rows[0].id, mediaRow.id]
+          );
+        }
+      }
+    }
+
     return reply.code(201).send({ message: result.rows[0] });
+  });
+
+  app.get('/api/messages/:messageId/thread/messages', { preHandler: authGuard }, async (request, reply) => {
+    const params = request.params as { messageId: string };
+    const userId = request.authUser!.userId;
+
+    const rootMessageResult = await pool.query(
+      `
+      SELECT id, channel_id, server_id, thread_root_message_id
+      FROM messages
+      WHERE id = $1
+      `,
+      [params.messageId]
+    );
+
+    if (rootMessageResult.rowCount === 0) {
+      return reply.code(404).send({ error: 'Root message not found' });
+    }
+
+    const rootMessage = rootMessageResult.rows[0];
+    const rootMessageId = rootMessage.thread_root_message_id ?? rootMessage.id;
+    const isMember = await requireServerMembership(userId, rootMessage.server_id);
+
+    if (!isMember) {
+      return reply.code(403).send({ error: 'Not a server member' });
+    }
+
+    const result = await pool.query(
+      `
+      SELECT m.id, m.channel_id, m.author_user_id, m.body, m.reply_to_message_id, m.thread_root_message_id,
+             m.edited_at, m.created_at,
+             u.handle AS author_handle,
+             u.name AS author_name,
+             COALESCE(
+               (
+                 SELECT json_agg(
+                   json_build_object(
+                     'id', mi.id,
+                     'mime_type', mi.mime_type,
+                     'original_name', mi.original_name,
+                     'public_url', mi.public_url
+                   )
+                 )
+                 FROM message_attachments ma
+                 JOIN media_items mi ON mi.id = ma.media_item_id
+                 WHERE ma.message_id = m.id
+               ),
+               '[]'::json
+             ) AS attachments
+      FROM messages m
+      JOIN users u ON u.id = m.author_user_id
+      WHERE m.id = $1 OR m.thread_root_message_id = $1
+      ORDER BY m.created_at ASC
+      `,
+      [rootMessageId]
+    );
+
+    return { messages: result.rows };
+  });
+
+  app.post('/api/messages/:messageId/thread/messages', { preHandler: authGuard }, async (request, reply) => {
+    const params = request.params as { messageId: string };
+    const parsed = threadMessageSchema.safeParse(request.body);
+
+    if (!parsed.success) {
+      return reply.code(400).send({ error: parsed.error.flatten() });
+    }
+
+    const userId = request.authUser!.userId;
+    const rootMessageResult = await pool.query(
+      `
+      SELECT id, channel_id, server_id, thread_root_message_id
+      FROM messages
+      WHERE id = $1
+      `,
+      [params.messageId]
+    );
+
+    if (rootMessageResult.rowCount === 0) {
+      return reply.code(404).send({ error: 'Root message not found' });
+    }
+
+    const rootMessage = rootMessageResult.rows[0];
+    const rootMessageId = rootMessage.thread_root_message_id ?? rootMessage.id;
+    const isMember = await requireServerMembership(userId, rootMessage.server_id);
+
+    if (!isMember) {
+      return reply.code(403).send({ error: 'Not a server member' });
+    }
+
+    const inserted = await pool.query(
+      `
+      INSERT INTO messages (server_id, channel_id, author_user_id, body, reply_to_message_id, thread_root_message_id)
+      VALUES ($1, $2, $3, $4, $5, $6)
+      RETURNING id, channel_id, author_user_id, body, reply_to_message_id, thread_root_message_id, edited_at, created_at
+      `,
+      [rootMessage.server_id, rootMessage.channel_id, userId, parsed.data.body, params.messageId, rootMessageId]
+    );
+
+    if (parsed.data.mediaItemIds && parsed.data.mediaItemIds.length > 0) {
+      const validMedia = await pool.query(
+        `
+        SELECT id
+        FROM media_items
+        WHERE channel_id = $1
+          AND id = ANY($2::uuid[])
+          AND uploader_user_id = $3
+        `,
+        [rootMessage.channel_id, parsed.data.mediaItemIds, userId]
+      );
+
+      for (const mediaRow of validMedia.rows) {
+        await pool.query(
+          `
+          INSERT INTO message_attachments (message_id, media_item_id)
+          VALUES ($1, $2)
+          ON CONFLICT DO NOTHING
+          `,
+          [inserted.rows[0].id, mediaRow.id]
+        );
+      }
+    }
+
+    return reply.code(201).send({ message: inserted.rows[0] });
   });
 
   app.post('/api/channels/:channelId/read', { preHandler: authGuard }, async (request, reply) => {
@@ -492,6 +819,7 @@ export async function registerAppRoutes(app: FastifyInstance) {
       FROM memberships ms
       JOIN servers s ON s.id = ms.server_id
       JOIN channels c ON c.server_id = s.id
+      LEFT JOIN channel_preferences cp ON cp.user_id = ms.user_id AND cp.channel_id = c.id
       LEFT JOIN read_states rs ON rs.user_id = ms.user_id AND rs.channel_id = c.id
       LEFT JOIN messages m ON m.channel_id = c.id
         AND (
@@ -499,6 +827,8 @@ export async function registerAppRoutes(app: FastifyInstance) {
           OR m.created_at > rs.last_read_at
         )
       WHERE ms.user_id = $1
+        AND COALESCE(cp.mode, 'passive') <> 'hidden'
+        AND (cp.snoozed_until IS NULL OR cp.snoozed_until < NOW())
       GROUP BY c.id, c.name, s.id, s.name
       HAVING COUNT(m.id) > 0
       ORDER BY s.name, c.name

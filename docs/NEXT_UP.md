@@ -3,9 +3,9 @@
 ## Priority sequence
 
 1. Add thread model and thread timeline endpoints
-2. Add media uploads (S3-compatible object storage) and OGP enrichment jobs
-3. Add channel notification mode APIs + UI (hidden/passive/active + temporary snooze)
-4. Add search endpoint and indexed strategy (Postgres FTS first)
+2. Add OGP enrichment jobs and attachment/link cards
+3. Add search endpoint and indexed strategy (Postgres FTS first)
+4. Add library + collections baseline from uploaded/linked content
 
 ## Hardening
 

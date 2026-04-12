@@ -46,6 +46,7 @@ CREATE TABLE IF NOT EXISTS messages (
   author_user_id UUID NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
   body TEXT NOT NULL,
   reply_to_message_id UUID REFERENCES messages(id) ON DELETE SET NULL,
+  thread_root_message_id UUID REFERENCES messages(id) ON DELETE CASCADE,
   edited_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -66,6 +67,11 @@ CREATE TABLE IF NOT EXISTS channel_preferences (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   PRIMARY KEY (user_id, channel_id)
 );
+ALTER TABLE channel_preferences
+  DROP CONSTRAINT IF EXISTS channel_preferences_mode_check;
+ALTER TABLE channel_preferences
+  ADD CONSTRAINT channel_preferences_mode_check
+  CHECK (mode IN ('hidden', 'passive', 'active'));
 
 CREATE TABLE IF NOT EXISTS read_states (
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -80,6 +86,8 @@ CREATE INDEX IF NOT EXISTS idx_messages_channel_created_at
 
 CREATE INDEX IF NOT EXISTS idx_messages_server_created_at
   ON messages(server_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_messages_thread_root_created_at
+  ON messages(thread_root_message_id, created_at ASC);
 
 CREATE TABLE IF NOT EXISTS custom_commands (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -104,3 +112,26 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_custom_commands_server_unique
 CREATE UNIQUE INDEX IF NOT EXISTS idx_custom_commands_user_unique
   ON custom_commands(user_id, command)
   WHERE scope = 'user';
+
+CREATE TABLE IF NOT EXISTS media_items (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  uploader_user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  server_id UUID NOT NULL REFERENCES servers(id) ON DELETE CASCADE,
+  channel_id UUID NOT NULL REFERENCES channels(id) ON DELETE CASCADE,
+  original_name TEXT NOT NULL,
+  mime_type TEXT NOT NULL,
+  size_bytes BIGINT NOT NULL,
+  storage_path TEXT NOT NULL,
+  public_url TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS message_attachments (
+  message_id UUID NOT NULL REFERENCES messages(id) ON DELETE CASCADE,
+  media_item_id UUID NOT NULL REFERENCES media_items(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (message_id, media_item_id)
+);
+
+ALTER TABLE messages
+  ADD COLUMN IF NOT EXISTS thread_root_message_id UUID REFERENCES messages(id) ON DELETE CASCADE;

@@ -1,4 +1,9 @@
+import { mkdir } from 'node:fs/promises';
+import { resolve } from 'node:path';
+
 import cors from '@fastify/cors';
+import multipart from '@fastify/multipart';
+import fastifyStatic from '@fastify/static';
 import Fastify from 'fastify';
 
 import { config } from './config.js';
@@ -12,6 +17,19 @@ async function main() {
   await app.register(cors, {
     origin: config.corsOrigin,
     credentials: true
+  });
+  await app.register(multipart, {
+    limits: {
+      fileSize: 100 * 1024 * 1024
+    }
+  });
+
+  const uploadsRoot = resolve(process.cwd(), config.uploadsDir);
+  await mkdir(uploadsRoot, { recursive: true });
+
+  await app.register(fastifyStatic, {
+    root: uploadsRoot,
+    prefix: '/uploads/'
   });
 
   await runMigrations();

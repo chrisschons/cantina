@@ -66,6 +66,7 @@ body {
 }
 
 input,
+select,
 button {
   font: inherit;
   border-radius: 12px;
@@ -160,6 +161,21 @@ button.ghost {
   border-bottom: 1px solid var(--border);
 }
 
+.channel-pref {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 0.6rem;
+  padding: 0.8rem 0.9rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.channel-pref label {
+  display: grid;
+  gap: 0.25rem;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
 .messages {
   padding: 0.9rem;
   display: grid;
@@ -193,6 +209,30 @@ button.ghost {
   white-space: pre-wrap;
 }
 
+.attachments {
+  margin-top: 0.55rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.attachments img {
+  width: 140px;
+  height: 100px;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+}
+
+.thread-actions {
+  margin-top: 0.5rem;
+}
+
+.mini {
+  padding: 0.32rem 0.55rem;
+  font-size: 0.8rem;
+}
+
 .reactions {
   margin-top: 0.55rem;
   display: flex;
@@ -212,6 +252,26 @@ button.ghost {
   padding: 0.9rem;
   border-top: 1px solid var(--border);
   grid-template-columns: 1fr auto;
+}
+
+.composer-main {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.pending-media {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.pending-media span {
+  font-size: 0.75rem;
+  padding: 0.18rem 0.44rem;
+  border-radius: 999px;
+  border: 1px solid rgba(62, 123, 110, 0.3);
+  background: rgba(62, 123, 110, 0.12);
 }
 
 .unread ul {
@@ -251,6 +311,25 @@ button.ghost {
   border-radius: 999px;
   font-size: 0.78rem;
   padding: 0.2rem 0.48rem;
+}
+
+.thread-panel .thread-list {
+  display: grid;
+  gap: 0.45rem;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.thread-message {
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: 10px;
+  padding: 0.45rem;
+}
+
+.thread-message p {
+  margin: 0.25rem 0 0;
+  font-size: 0.9rem;
 }
 
 .error {

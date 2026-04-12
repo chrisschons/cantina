@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from 'react';
 
 import { api } from './api';
 
@@ -19,15 +19,29 @@ type Channel = {
   id: string;
   name: string;
   slug: string;
+  notification_mode: 'hidden' | 'passive' | 'active';
+  snoozed_until?: string | null;
 };
 
 type Message = {
   id: string;
   body: string;
+  thread_root_message_id?: string | null;
+  thread_reply_count?: number;
   author_handle: string;
   author_name: string;
   created_at: string;
   reactions: { emoji: string; count: number }[];
+  attachments: { id: string; mime_type: string; original_name: string; public_url: string }[];
+};
+
+type ThreadMessage = {
+  id: string;
+  body: string;
+  author_handle: string;
+  author_name: string;
+  created_at: string;
+  attachments: { id: string; mime_type: string; original_name: string; public_url: string }[];
 };
 
 type Command = {
@@ -58,6 +72,14 @@ export function App() {
   const [serverName, setServerName] = useState('');
   const [channelName, setChannelName] = useState('');
   const [composer, setComposer] = useState('');
+  const [pendingMedia, setPendingMedia] = useState<
+    { id: string; public_url: string; mime_type: string; original_name: string }[]
+  >([]);
+  const [selectedThreadRootId, setSelectedThreadRootId] = useState('');
+  const [threadMessages, setThreadMessages] = useState<ThreadMessage[]>([]);
+  const [threadComposer, setThreadComposer] = useState('');
+  const [channelMode, setChannelMode] = useState<'hidden' | 'passive' | 'active'>('passive');
+  const [channelSnoozeHours, setChannelSnoozeHours] = useState('0');
   const [unread, setUnread] = useState<
     {
       channel_id: string;
@@ -104,7 +126,7 @@ export function App() {
       setUserCommands(userCommandResult.commands);
 
       if (serverResult.servers.length > 0) {
-        const firstServer = serverResult.servers[0];
+        const firstServer = serverResult.servers[0]!;
         setSelectedServerId(firstServer.id);
         await loadChannels(nextToken, firstServer.id);
       }
@@ -123,18 +145,24 @@ export function App() {
     setServerCommands(serverCommandResult.commands);
 
     if (channelResult.channels.length > 0) {
-      const firstChannel = channelResult.channels[0];
+      const firstChannel = channelResult.channels[0]!;
       setSelectedChannelId(firstChannel.id);
+      setSelectedThreadRootId('');
+      setThreadMessages([]);
       await loadMessages(nextToken, firstChannel.id);
     } else {
       setSelectedChannelId('');
       setMessages([]);
+      setSelectedThreadRootId('');
+      setThreadMessages([]);
     }
   }
 
   async function loadMessages(nextToken: string, channelId: string) {
     const messageResult = await api.messages(nextToken, channelId);
+    const preferenceResult = await api.channelPreference(nextToken, channelId);
     setMessages(messageResult.messages);
+    setChannelMode(preferenceResult.preference.mode);
   }
 
   async function onAuthSubmit(event: FormEvent<HTMLFormElement>) {
@@ -210,13 +238,105 @@ export function App() {
 
     try {
       setBusy(true);
-      await api.createMessage(token, selectedChannelId, { body: composer.trim() });
+      await api.createMessage(token, selectedChannelId, {
+        body: composer.trim(),
+        mediaItemIds: pendingMedia.map((media) => media.id)
+      });
       setComposer('');
+      setPendingMedia([]);
       await loadMessages(token, selectedChannelId);
       const unreadResult = await api.unread(token);
       setUnread(unreadResult.unread);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Failed to send message');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function onUploadFile(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+
+    if (!file || !token || !selectedChannelId) {
+      return;
+    }
+
+    try {
+      setBusy(true);
+      const result = await api.uploadToChannel(token, selectedChannelId, file);
+      setPendingMedia((prev) => [...prev, result.media]);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Failed to upload file');
+    } finally {
+      setBusy(false);
+      event.target.value = '';
+    }
+  }
+
+  async function onOpenThread(rootMessageId: string) {
+    if (!token) {
+      return;
+    }
+
+    try {
+      setBusy(true);
+      setSelectedThreadRootId(rootMessageId);
+      const result = await api.threadMessages(token, rootMessageId);
+      setThreadMessages(result.messages);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Failed to load thread');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function onSendThreadMessage(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!token || !selectedThreadRootId || !threadComposer.trim()) {
+      return;
+    }
+
+    try {
+      setBusy(true);
+      await api.createThreadMessage(token, selectedThreadRootId, { body: threadComposer.trim() });
+      setThreadComposer('');
+      const result = await api.threadMessages(token, selectedThreadRootId);
+      setThreadMessages(result.messages);
+      if (selectedChannelId) {
+        await loadMessages(token, selectedChannelId);
+      }
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Failed to post thread message');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function onSaveChannelPreference(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!token || !selectedChannelId) {
+      return;
+    }
+
+    const hours = Number(channelSnoozeHours || '0');
+    const snoozedUntil =
+      Number.isFinite(hours) && hours > 0 ? new Date(Date.now() + hours * 60 * 60 * 1000).toISOString() : null;
+
+    try {
+      setBusy(true);
+      await api.updateChannelPreference(token, selectedChannelId, {
+        mode: channelMode,
+        snoozedUntil
+      });
+      const unreadResult = await api.unread(token);
+      setUnread(unreadResult.unread);
+      if (selectedServerId) {
+        await loadChannels(token, selectedServerId);
+      }
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Failed to update channel preference');
     } finally {
       setBusy(false);
     }
@@ -237,6 +357,8 @@ export function App() {
     }
 
     setSelectedChannelId(channelId);
+    setSelectedThreadRootId('');
+    setThreadMessages([]);
     await loadMessages(token, channelId);
   }
 
@@ -247,6 +369,10 @@ export function App() {
     setServers([]);
     setChannels([]);
     setMessages([]);
+    setPendingMedia([]);
+    setSelectedThreadRootId('');
+    setThreadMessages([]);
+    setThreadComposer('');
     setUserCommands([]);
     setServerCommands([]);
     setSelectedChannelId('');
@@ -408,6 +534,28 @@ export function App() {
             Logout
           </button>
         </header>
+        <form className="channel-pref" onSubmit={onSaveChannelPreference}>
+          <label>
+            Mode
+            <select value={channelMode} onChange={(event) => setChannelMode(event.target.value as 'hidden' | 'passive' | 'active')}>
+              <option value="passive">Passive</option>
+              <option value="active">Active</option>
+              <option value="hidden">Hidden</option>
+            </select>
+          </label>
+          <label>
+            Snooze (hours)
+            <input
+              type="number"
+              min="0"
+              value={channelSnoozeHours}
+              onChange={(event) => setChannelSnoozeHours(event.target.value)}
+            />
+          </label>
+          <button type="submit" disabled={!selectedChannelId}>
+            Save
+          </button>
+        </form>
 
         <div className="messages">
           {messages.map((message) => (
@@ -418,6 +566,19 @@ export function App() {
                 <time>{new Date(message.created_at).toLocaleString()}</time>
               </div>
               <p>{message.body}</p>
+              {message.attachments.length > 0 ? (
+                <div className="attachments">
+                  {message.attachments.map((attachment) =>
+                    attachment.mime_type.startsWith('image/') ? (
+                      <img key={attachment.id} src={attachment.public_url} alt={attachment.original_name} />
+                    ) : (
+                      <a key={attachment.id} href={attachment.public_url} target="_blank" rel="noreferrer">
+                        {attachment.original_name}
+                      </a>
+                    )
+                  )}
+                </div>
+              ) : null}
               {message.reactions.length > 0 ? (
                 <div className="reactions">
                   {message.reactions.map((reaction) => (
@@ -427,19 +588,34 @@ export function App() {
                   ))}
                 </div>
               ) : null}
+              <div className="thread-actions">
+                <button className="ghost mini" onClick={() => void onOpenThread(message.id)} type="button">
+                  Thread {message.thread_reply_count ? `(${message.thread_reply_count})` : ''}
+                </button>
+              </div>
             </article>
           ))}
         </div>
 
         <form className="composer" onSubmit={onSendMessage}>
-          <input
-            placeholder="Write a message"
-            value={composer}
-            onChange={(event) => setComposer(event.target.value)}
-          />
+          <div className="composer-main">
+            <input
+              placeholder="Write a message"
+              value={composer}
+              onChange={(event) => setComposer(event.target.value)}
+            />
+            <input type="file" onChange={onUploadFile} disabled={!selectedChannelId || busy} />
+          </div>
           <button type="submit" disabled={!selectedChannelId || busy}>
             Send
           </button>
+          {pendingMedia.length > 0 ? (
+            <div className="pending-media">
+              {pendingMedia.map((media) => (
+                <span key={media.id}>{media.original_name}</span>
+              ))}
+            </div>
+          ) : null}
         </form>
       </section>
 
@@ -502,6 +678,29 @@ export function App() {
             ))}
           </div>
         </section>
+        {selectedThreadRootId ? (
+          <section className="commands-panel thread-panel">
+            <h3>Thread</h3>
+            <div className="thread-list">
+              {threadMessages.map((message) => (
+                <article key={message.id} className="thread-message">
+                  <strong>{message.author_name}</strong>
+                  <p>{message.body}</p>
+                </article>
+              ))}
+            </div>
+            <form onSubmit={onSendThreadMessage}>
+              <input
+                placeholder="Reply in thread"
+                value={threadComposer}
+                onChange={(event) => setThreadComposer(event.target.value)}
+              />
+              <button type="submit" disabled={busy}>
+                Reply
+              </button>
+            </form>
+          </section>
+        ) : null}
       </aside>
 
       {error ? <pre className="error floating">{error}</pre> : null}

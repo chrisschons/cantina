@@ -6,5 +6,7 @@ export const config = {
   port: Number(process.env.PORT ?? 4000),
   databaseUrl: process.env.DATABASE_URL ?? 'postgresql://tincan:tincan@localhost:5432/tincan',
   jwtSecret: process.env.JWT_SECRET ?? 'change-me',
-  corsOrigin: process.env.CORS_ORIGIN ?? 'http://localhost:5173'
+  corsOrigin: process.env.CORS_ORIGIN ?? 'http://localhost:5173',
+  uploadsDir: process.env.UPLOADS_DIR ?? 'uploads',
+  uploadsBaseUrl: process.env.UPLOADS_BASE_URL ?? 'http://localhost:4000/uploads'
 };

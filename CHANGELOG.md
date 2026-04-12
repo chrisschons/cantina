@@ -10,5 +10,8 @@ All notable changes to this project are tracked here.
 - Backend API MVP (auth, servers, channels, messages, reactions, unread)
 - Added custom slash command support (user + server scoped)
 - Added basic command management UI in web client
+- Added thread endpoints and web thread panel
+- Added file upload pipeline and message attachments
+- Added channel notification preference APIs and UI controls
 - Web MVP (React + Vite shell with auth, server/channel/message flows)
 - Docker Compose stack and setup/version documentation

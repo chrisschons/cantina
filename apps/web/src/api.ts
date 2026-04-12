@@ -13,10 +13,11 @@ export type AuthResult = {
 };
 
 export async function request<T>(path: string, init: RequestInit = {}, token?: string): Promise<T> {
+  const isFormData = typeof FormData !== 'undefined' && init.body instanceof FormData;
   const response = await fetch(`${API_URL}${path}`, {
     ...init,
     headers: {
-      'Content-Type': 'application/json',
+      ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...(init.headers ?? {})
     }
@@ -44,7 +45,15 @@ export const api = {
       token
     ),
   channels: (token: string, serverId: string) =>
-    request<{ channels: { id: string; name: string; slug: string }[] }>(`/api/servers/${serverId}/channels`, {}, token),
+    request<{
+      channels: {
+        id: string;
+        name: string;
+        slug: string;
+        notification_mode: 'hidden' | 'passive' | 'active';
+        snoozed_until?: string | null;
+      }[];
+    }>(`/api/servers/${serverId}/channels`, {}, token),
   createChannel: (token: string, serverId: string, payload: { name: string; topic?: string }) =>
     request<{ channel: { id: string; name: string; slug: string } }>(
       `/api/servers/${serverId}/channels`,
@@ -56,16 +65,66 @@ export const api = {
       messages: {
         id: string;
         body: string;
+        thread_root_message_id?: string | null;
+        thread_reply_count?: number;
         author_handle: string;
         author_name: string;
         created_at: string;
         reactions: { emoji: string; count: number }[];
+        attachments: { id: string; mime_type: string; original_name: string; public_url: string }[];
       }[];
     }>(`/api/channels/${channelId}/messages`, {}, token),
-  createMessage: (token: string, channelId: string, payload: { body: string }) =>
+  createMessage: (token: string, channelId: string, payload: { body: string; mediaItemIds?: string[] }) =>
     request<{ message: { id: string } }>(
       `/api/channels/${channelId}/messages`,
       { method: 'POST', body: JSON.stringify(payload) },
+      token
+    ),
+  uploadToChannel: (token: string, channelId: string, file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    return request<{ media: { id: string; public_url: string; mime_type: string; original_name: string } }>(
+      `/api/channels/${channelId}/uploads`,
+      {
+        method: 'POST',
+        body: formData,
+        headers: {}
+      },
+      token
+    );
+  },
+  threadMessages: (token: string, messageId: string) =>
+    request<{
+      messages: {
+        id: string;
+        body: string;
+        author_handle: string;
+        author_name: string;
+        created_at: string;
+        attachments: { id: string; mime_type: string; original_name: string; public_url: string }[];
+      }[];
+    }>(`/api/messages/${messageId}/thread/messages`, {}, token),
+  createThreadMessage: (token: string, messageId: string, payload: { body: string; mediaItemIds?: string[] }) =>
+    request<{ message: { id: string } }>(
+      `/api/messages/${messageId}/thread/messages`,
+      { method: 'POST', body: JSON.stringify(payload) },
+      token
+    ),
+  channelPreference: (token: string, channelId: string) =>
+    request<{ preference: { mode: 'hidden' | 'passive' | 'active'; snoozed_until?: string | null } }>(
+      `/api/channels/${channelId}/preferences`,
+      {},
+      token
+    ),
+  updateChannelPreference: (
+    token: string,
+    channelId: string,
+    payload: { mode: 'hidden' | 'passive' | 'active'; snoozedUntil?: string | null }
+  ) =>
+    request<{ ok: boolean }>(
+      `/api/channels/${channelId}/preferences`,
+      { method: 'PUT', body: JSON.stringify(payload) },
       token
     ),
   userCommands: (token: string) =>
