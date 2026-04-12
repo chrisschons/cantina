@@ -16,5 +16,7 @@ All notable changes to this project are tracked here.
 - Added message search endpoint and web search panel
 - Added OGP-style link preview fetching and inline message preview cards
 - Added library items + collections API baseline and web collection tooling
+- Added versioned SQL migrations runner with tracked migration history
+- Added auth hardening: rotating refresh sessions, logout endpoints, and login attempt throttling
 - Web MVP (React + Vite shell with auth, server/channel/message flows)
 - Docker Compose stack and setup/version documentation

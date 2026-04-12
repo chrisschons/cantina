@@ -18,5 +18,5 @@
 
 ## Notes
 
-- API runs SQL schema bootstrap on startup from `apps/api/sql/schema.sql`.
+- API runs versioned SQL migrations on startup from `apps/api/sql/migrations`.
 - This is a development-oriented Compose file and expects dependencies to already be installed in the workspace.

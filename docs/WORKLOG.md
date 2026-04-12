@@ -16,6 +16,8 @@
 - Added search API + UI for server/channel message lookup
 - Added link preview batch fetch API and automatic URL preview upsert on message ingest
 - Added library item ingestion (urls + media), collections APIs, and collection UI baseline
+- Replaced startup schema bootstrap with versioned SQL migrations runner (`schema_migrations`)
+- Added auth session model with rotating refresh tokens, logout/logout-all endpoints, and login attempt throttling
 - Implemented web MVP in `apps/web` with auth and channel/message UI
 - Added Docker Compose for app + postgres + redis
 - Added API and setup docs plus version tracking

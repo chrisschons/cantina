@@ -1,7 +1,7 @@
 # ADR 0004: SQL Schema Bootstrap at API Startup (Early Stage)
 
 - Date: 2026-04-12
-- Status: Accepted
+- Status: Superseded by ADR 0005
 
 ## Context
 A lightweight migration path is needed in an early-stage repo with no existing migration framework.

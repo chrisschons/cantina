@@ -9,3 +9,4 @@
 5. Product codename: Tincan
 6. License: deferred (none yet)
 7. MVP direction: architecture + runnable skeleton + auth/channels/messages core first
+8. Migration model moved from startup schema bootstrap to versioned SQL migrations

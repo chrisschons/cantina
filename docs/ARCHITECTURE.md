@@ -27,7 +27,7 @@ Tincan v1 targets a single private community hosted on one server.
 
 - REST for primary CRUD and queries
 - WebSocket for realtime fanout
-- JWT auth (access + refresh model later)
+- JWT auth (short-lived access + rotating refresh sessions)
 - Capability hooks reserved for module system
 
 ## Non-goals in v1

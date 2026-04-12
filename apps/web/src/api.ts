@@ -2,6 +2,8 @@ const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:4000';
 
 export type AuthResult = {
   token: string;
+  accessToken?: string;
+  refreshToken?: string;
   user: {
     id: string;
     email: string;
@@ -36,6 +38,11 @@ export const api = {
     request<AuthResult>('/api/auth/register', { method: 'POST', body: JSON.stringify(payload) }),
   login: (payload: { email: string; password: string }) =>
     request<AuthResult>('/api/auth/login', { method: 'POST', body: JSON.stringify(payload) }),
+  refresh: (payload: { refreshToken: string }) =>
+    request<AuthResult>('/api/auth/refresh', { method: 'POST', body: JSON.stringify(payload) }),
+  logout: (payload: { refreshToken: string }) =>
+    request<{ ok: boolean }>('/api/auth/logout', { method: 'POST', body: JSON.stringify(payload) }),
+  logoutAll: (token: string) => request<{ ok: boolean }>('/api/auth/logout-all', { method: 'POST', body: '{}' }, token),
   me: (token: string) => request<{ user: AuthResult['user'] }>('/api/me', {}, token),
   servers: (token: string) => request<{ servers: { id: string; name: string; slug: string }[] }>('/api/servers', {}, token),
   createServer: (token: string, payload: { name: string }) =>

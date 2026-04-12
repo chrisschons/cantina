@@ -59,6 +59,7 @@ type Command = {
 };
 
 const TOKEN_KEY = 'tincan_token';
+const REFRESH_TOKEN_KEY = 'tincan_refresh_token';
 
 function extractUrls(text: string) {
   const matches = text.match(/https?:\/\/[^\s<>"')]+/g) ?? [];
@@ -68,6 +69,7 @@ function extractUrls(text: string) {
 export function App() {
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [token, setToken] = useState(() => localStorage.getItem(TOKEN_KEY) ?? '');
+  const [refreshToken, setRefreshToken] = useState(() => localStorage.getItem(REFRESH_TOKEN_KEY) ?? '');
   const [user, setUser] = useState<User | null>(null);
   const [servers, setServers] = useState<Server[]>([]);
   const [channels, setChannels] = useState<Channel[]>([]);
@@ -186,8 +188,24 @@ export function App() {
         await loadChannels(nextToken, firstServer.id);
       }
     } catch (cause) {
+      if (refreshToken) {
+        try {
+          const refreshed = await api.refresh({ refreshToken });
+          localStorage.setItem(TOKEN_KEY, refreshed.accessToken ?? refreshed.token);
+          if (refreshed.refreshToken) {
+            localStorage.setItem(REFRESH_TOKEN_KEY, refreshed.refreshToken);
+            setRefreshToken(refreshed.refreshToken);
+          }
+          setToken(refreshed.accessToken ?? refreshed.token);
+          setUser(refreshed.user);
+          return;
+        } catch {
+          // Fall through to full logout if refresh fails.
+        }
+      }
+
       setError(cause instanceof Error ? cause.message : 'Failed to load session');
-      logout();
+      await logout();
     } finally {
       setBusy(false);
     }
@@ -252,8 +270,13 @@ export function App() {
               handle: authForm.handle
             });
 
-      localStorage.setItem(TOKEN_KEY, result.token);
-      setToken(result.token);
+      const accessToken = result.accessToken ?? result.token;
+      localStorage.setItem(TOKEN_KEY, accessToken);
+      if (result.refreshToken) {
+        localStorage.setItem(REFRESH_TOKEN_KEY, result.refreshToken);
+        setRefreshToken(result.refreshToken);
+      }
+      setToken(accessToken);
       setUser(result.user);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Authentication failed');
@@ -498,9 +521,19 @@ export function App() {
     await loadMessages(token, channelId);
   }
 
-  function logout() {
+  async function logout() {
+    if (refreshToken) {
+      try {
+        await api.logout({ refreshToken });
+      } catch {
+        // Client cleanup should continue even if logout call fails.
+      }
+    }
+
     localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(REFRESH_TOKEN_KEY);
     setToken('');
+    setRefreshToken('');
     setUser(null);
     setServers([]);
     setChannels([]);
@@ -674,7 +707,7 @@ export function App() {
       <section className="chat">
         <header className="chat-header">
           <h2>{selectedChannel ? `#${selectedChannel.name}` : 'Pick a channel'}</h2>
-          <button className="ghost" onClick={logout}>
+          <button className="ghost" onClick={() => void logout()}>
             Logout
           </button>
         </header>

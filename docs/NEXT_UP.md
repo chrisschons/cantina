@@ -9,7 +9,7 @@
 
 ## Hardening
 
-1. Move from startup schema bootstrap to explicit versioned migrations
-2. Add integration tests around auth and channel authorization
-3. Add rate limiting and brute force protection for auth endpoints
-4. Add refresh token/session revocation model
+1. Add integration tests around auth and channel authorization
+2. Add invite link lifecycle and expiration controls
+3. Add role-based authorization gates for admin-only actions
+4. Add background cleanup jobs for expired/revoked auth sessions and old login attempt rows
