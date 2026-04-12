@@ -56,6 +56,8 @@
 - Added click-to-open image lightbox overlay for message attachments with close/prev/next controls
 - Added keyboard navigation in lightbox (`Esc`, left arrow, right arrow)
 - Added YouTube URL detection and inline iframe embeds in message link preview cards
+- Added Spotify/Apple music link detection and rendered embedded player cards
+- Added paired “Play on Spotify/Apple Music” actions in music preview cards
 - Added Docker Compose for app + postgres + redis
 - Added API and setup docs plus version tracking
 - Validation status: runtime checks blocked in this environment (`docker`, `node`, and `pnpm` are unavailable in sandbox)

@@ -445,6 +445,18 @@ button.ghost {
   background: #000;
 }
 
+.preview-card.music-card {
+  gap: 0.45rem;
+}
+
+.preview-card.music-card iframe {
+  width: 100%;
+  height: 152px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #000;
+}
+
 .preview-card img {
   width: auto;
   max-width: 100%;
@@ -481,6 +493,28 @@ button.ghost {
   color: var(--text-muted);
   word-break: break-all;
   text-decoration: underline;
+}
+
+.music-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.1rem;
+}
+
+.music-play-button {
+  font-size: 0.72rem;
+  text-decoration: none;
+  border: 1px solid rgba(119, 118, 188, 0.35);
+  background: rgba(119, 118, 188, 0.2);
+  color: var(--text);
+  border-radius: 999px;
+  padding: 0.14rem 0.46rem;
+  font-weight: 700;
+}
+
+.music-play-button.ghost {
+  background: rgba(255, 255, 255, 0.75);
 }
 
 .attachments img {

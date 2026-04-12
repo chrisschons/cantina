@@ -98,6 +98,79 @@ function getYouTubeEmbedUrl(rawUrl: string) {
   return null;
 }
 
+type MusicPreview = {
+  embedUrl: string;
+  sourceLabel: 'Spotify' | 'Apple Music';
+  sourcePlayUrl: string;
+  alternateLabel: 'Spotify' | 'Apple Music';
+  alternatePlayUrl: string;
+};
+
+function getSpotifyTrackId(rawUrl: string) {
+  try {
+    const parsed = new URL(rawUrl);
+    if (!parsed.hostname.includes('spotify.com')) {
+      return null;
+    }
+    const parts = parsed.pathname.split('/').filter(Boolean);
+    if (parts[0] === 'track' && parts[1]) {
+      return parts[1];
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}
+
+function getAppleMusicTrackInfo(rawUrl: string) {
+  try {
+    const parsed = new URL(rawUrl);
+    if (!parsed.hostname.includes('music.apple.com')) {
+      return null;
+    }
+    const trackId = parsed.searchParams.get('i');
+    if (!trackId) {
+      return null;
+    }
+    const country = parsed.pathname.split('/').filter(Boolean)[0] ?? 'us';
+    return {
+      country,
+      trackId
+    };
+  } catch {
+    return null;
+  }
+}
+
+function getMusicPreview(url: string, preview?: LinkPreview): MusicPreview | null {
+  const spotifyTrackId = getSpotifyTrackId(url);
+  if (spotifyTrackId) {
+    const query = encodeURIComponent(preview?.title || preview?.description || 'song');
+    return {
+      embedUrl: `https://open.spotify.com/embed/track/${spotifyTrackId}`,
+      sourceLabel: 'Spotify',
+      sourcePlayUrl: `https://open.spotify.com/track/${spotifyTrackId}`,
+      alternateLabel: 'Apple Music',
+      alternatePlayUrl: `https://music.apple.com/us/search?term=${query}`
+    };
+  }
+
+  const appleInfo = getAppleMusicTrackInfo(url);
+  if (appleInfo) {
+    const parsed = new URL(url);
+    const query = encodeURIComponent(preview?.title || preview?.description || 'song');
+    return {
+      embedUrl: `https://embed.music.apple.com/${appleInfo.country}${parsed.pathname}?i=${appleInfo.trackId}`,
+      sourceLabel: 'Apple Music',
+      sourcePlayUrl: url,
+      alternateLabel: 'Spotify',
+      alternatePlayUrl: `https://open.spotify.com/search/${query}`
+    };
+  }
+
+  return null;
+}
+
 export function App() {
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [token, setToken] = useState(() => localStorage.getItem(TOKEN_KEY) ?? '');
@@ -1124,7 +1197,33 @@ export function App() {
                 <div className="link-previews">
                   {extractUrls(message.body).map((url) => {
                     const preview = linkPreviews[url];
+                    const musicPreview = getMusicPreview(url, preview);
                     const youtubeEmbedUrl = getYouTubeEmbedUrl(url);
+
+                    if (musicPreview) {
+                      return (
+                        <article className="preview-card music-card" key={`${message.id}-${url}`}>
+                          <iframe
+                            src={musicPreview.embedUrl}
+                            title={preview?.title || `${musicPreview.sourceLabel} player`}
+                            allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                            loading="lazy"
+                          />
+                          <div className="preview-copy">
+                            <strong>{preview?.title || `${musicPreview.sourceLabel} track`}</strong>
+                            {preview?.description ? <span className="preview-description">{preview.description}</span> : null}
+                            <div className="music-actions">
+                              <a className="music-play-button" href={musicPreview.sourcePlayUrl} rel="noreferrer" target="_blank">
+                                Play on {musicPreview.sourceLabel}
+                              </a>
+                              <a className="music-play-button ghost" href={musicPreview.alternatePlayUrl} rel="noreferrer" target="_blank">
+                                Play on {musicPreview.alternateLabel}
+                              </a>
+                            </div>
+                          </div>
+                        </article>
+                      );
+                    }
 
                     if (youtubeEmbedUrl) {
                       return (
