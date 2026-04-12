@@ -18,6 +18,9 @@
 - Added library item ingestion (urls + media), collections APIs, and collection UI baseline
 - Replaced startup schema bootstrap with versioned SQL migrations runner (`schema_migrations`)
 - Added auth session model with rotating refresh tokens, logout/logout-all endpoints, and login attempt throttling
+- Added invites table + APIs and invite-accept server join flow
+- Added owner/admin/member role constraints and admin-gated operations (channels, server commands, public collections)
+- Added owner-only endpoint to promote/demote member roles
 - Implemented web MVP in `apps/web` with auth and channel/message UI
 - Added Docker Compose for app + postgres + redis
 - Added API and setup docs plus version tracking

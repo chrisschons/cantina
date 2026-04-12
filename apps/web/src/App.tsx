@@ -13,6 +13,7 @@ type Server = {
   id: string;
   name: string;
   slug: string;
+  role?: 'owner' | 'admin' | 'member';
 };
 
 type Channel = {
@@ -108,6 +109,12 @@ export function App() {
   const [collectionVisibility, setCollectionVisibility] = useState<'private' | 'public'>('private');
   const [selectedCollectionId, setSelectedCollectionId] = useState('');
   const [selectedLibraryItemIds, setSelectedLibraryItemIds] = useState<string[]>([]);
+  const [inviteRoleToGrant, setInviteRoleToGrant] = useState<'admin' | 'member'>('member');
+  const [inviteMaxUses, setInviteMaxUses] = useState('');
+  const [inviteExpiresHours, setInviteExpiresHours] = useState('');
+  const [joinInviteCode, setJoinInviteCode] = useState('');
+  const [invites, setInvites] = useState<{ id: string; code: string; role_to_grant: 'admin' | 'member'; uses_count: number }[]>([]);
+  const [members, setMembers] = useState<{ user_id: string; name: string; handle: string; role: 'owner' | 'admin' | 'member' }[]>([]);
   const [unread, setUnread] = useState<
     {
       channel_id: string;
@@ -184,6 +191,7 @@ export function App() {
       if (serverResult.servers.length > 0) {
         const firstServer = serverResult.servers[0]!;
         setSelectedServerId(firstServer.id);
+        await loadServerAdminData(nextToken, firstServer.id);
         await loadLibraryAndCollections(nextToken, firstServer.id);
         await loadChannels(nextToken, firstServer.id);
       }
@@ -254,6 +262,17 @@ export function App() {
     }
   }
 
+  async function loadServerAdminData(nextToken: string, serverId: string) {
+    try {
+      const [inviteResult, memberResult] = await Promise.all([api.invites(nextToken, serverId), api.serverMembers(nextToken, serverId)]);
+      setInvites(inviteResult.invites);
+      setMembers(memberResult.members);
+    } catch {
+      setInvites([]);
+      setMembers([]);
+    }
+  }
+
   async function onAuthSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError('');
@@ -318,6 +337,62 @@ export function App() {
       await loadChannels(token, selectedServerId);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Failed to create channel');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function onCreateInvite(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!token || !selectedServerId) {
+      return;
+    }
+
+    try {
+      setBusy(true);
+      await api.createInvite(token, selectedServerId, {
+        roleToGrant: inviteRoleToGrant,
+        maxUses: inviteMaxUses.trim() ? Number(inviteMaxUses) : undefined,
+        expiresInHours: inviteExpiresHours.trim() ? Number(inviteExpiresHours) : undefined
+      });
+      setInviteMaxUses('');
+      setInviteExpiresHours('');
+      await loadServerAdminData(token, selectedServerId);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Failed to create invite');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function onJoinInvite(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!token || !joinInviteCode.trim()) {
+      return;
+    }
+
+    try {
+      setBusy(true);
+      const code = joinInviteCode.trim();
+      const info = await api.inviteInfo(token, code);
+
+      if (info.invite.is_member) {
+        setSelectedServerId(info.invite.server_id);
+        await loadServerAdminData(token, info.invite.server_id);
+        await loadChannels(token, info.invite.server_id);
+      } else {
+        const accepted = await api.acceptInvite(token, code);
+        await bootstrap(token);
+        setSelectedServerId(accepted.serverId);
+        await loadServerAdminData(token, accepted.serverId);
+        await loadChannels(token, accepted.serverId);
+      }
+
+      setJoinInviteCode('');
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Failed to join invite');
     } finally {
       setBusy(false);
     }
@@ -504,6 +579,7 @@ export function App() {
     }
 
     setSelectedServerId(serverId);
+    await loadServerAdminData(token, serverId);
     await loadChannels(token, serverId);
   }
 
@@ -550,6 +626,11 @@ export function App() {
     setCollectionName('');
     setSelectedCollectionId('');
     setSelectedLibraryItemIds([]);
+    setInvites([]);
+    setMembers([]);
+    setJoinInviteCode('');
+    setInviteMaxUses('');
+    setInviteExpiresHours('');
     setUserCommands([]);
     setServerCommands([]);
     setSelectedChannelId('');
@@ -677,6 +758,58 @@ export function App() {
           />
           <button type="submit">Create</button>
         </form>
+        <form onSubmit={onJoinInvite}>
+          <input
+            placeholder="Invite code"
+            value={joinInviteCode}
+            onChange={(event) => setJoinInviteCode(event.target.value)}
+          />
+          <button type="submit">Join</button>
+        </form>
+        <form onSubmit={onCreateInvite}>
+          <select
+            value={inviteRoleToGrant}
+            onChange={(event) => setInviteRoleToGrant(event.target.value as 'admin' | 'member')}
+          >
+            <option value="member">Grant member</option>
+            <option value="admin">Grant admin</option>
+          </select>
+          <input
+            placeholder="Max uses (optional)"
+            type="number"
+            min="1"
+            value={inviteMaxUses}
+            onChange={(event) => setInviteMaxUses(event.target.value)}
+          />
+          <input
+            placeholder="Expires in hours"
+            type="number"
+            min="1"
+            value={inviteExpiresHours}
+            onChange={(event) => setInviteExpiresHours(event.target.value)}
+          />
+          <button type="submit" disabled={!selectedServerId}>
+            Create Invite
+          </button>
+        </form>
+        {invites.length > 0 ? (
+          <div className="mini-list">
+            {invites.slice(0, 5).map((invite) => (
+              <code key={invite.id}>
+                {invite.code} ({invite.role_to_grant}, {invite.uses_count})
+              </code>
+            ))}
+          </div>
+        ) : null}
+        {members.length > 0 ? (
+          <div className="mini-list">
+            {members.slice(0, 6).map((member) => (
+              <span key={member.user_id}>
+                {member.name} ({member.role})
+              </span>
+            ))}
+          </div>
+        ) : null}
       </aside>
 
       <aside className="sidebar channels">

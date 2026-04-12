@@ -18,5 +18,8 @@ All notable changes to this project are tracked here.
 - Added library items + collections API baseline and web collection tooling
 - Added versioned SQL migrations runner with tracked migration history
 - Added auth hardening: rotating refresh sessions, logout endpoints, and login attempt throttling
+- Added invite link lifecycle APIs (create/list/revoke/accept + preview)
+- Added role-gated authorization rules for admin/owner actions
+- Added basic web UI for invite creation/join and member visibility
 - Web MVP (React + Vite shell with auth, server/channel/message flows)
 - Docker Compose stack and setup/version documentation

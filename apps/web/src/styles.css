@@ -130,6 +130,22 @@ button.ghost {
   align-content: start;
 }
 
+.mini-list {
+  display: grid;
+  gap: 0.35rem;
+  max-height: 120px;
+  overflow-y: auto;
+}
+
+.mini-list code,
+.mini-list span {
+  font-size: 0.74rem;
+  padding: 0.2rem 0.35rem;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid var(--border);
+}
+
 .item {
   text-align: left;
   background: rgba(255, 255, 255, 0.75);

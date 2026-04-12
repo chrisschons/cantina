@@ -44,13 +44,58 @@ export const api = {
     request<{ ok: boolean }>('/api/auth/logout', { method: 'POST', body: JSON.stringify(payload) }),
   logoutAll: (token: string) => request<{ ok: boolean }>('/api/auth/logout-all', { method: 'POST', body: '{}' }, token),
   me: (token: string) => request<{ user: AuthResult['user'] }>('/api/me', {}, token),
-  servers: (token: string) => request<{ servers: { id: string; name: string; slug: string }[] }>('/api/servers', {}, token),
+  servers: (token: string) =>
+    request<{ servers: { id: string; name: string; slug: string; role: 'owner' | 'admin' | 'member' }[] }>(
+      '/api/servers',
+      {},
+      token
+    ),
   createServer: (token: string, payload: { name: string }) =>
     request<{ server: { id: string; name: string; slug: string } }>(
       '/api/servers',
       { method: 'POST', body: JSON.stringify(payload) },
       token
     ),
+  serverMembers: (token: string, serverId: string) =>
+    request<{ members: { user_id: string; handle: string; name: string; role: 'owner' | 'admin' | 'member' }[] }>(
+      `/api/servers/${serverId}/members`,
+      {},
+      token
+    ),
+  updateMemberRole: (token: string, serverId: string, memberUserId: string, role: 'admin' | 'member') =>
+    request<{ ok: boolean }>(
+      `/api/servers/${serverId}/members/${memberUserId}/role`,
+      { method: 'PUT', body: JSON.stringify({ role }) },
+      token
+    ),
+  invites: (token: string, serverId: string) =>
+    request<{
+      invites: {
+        id: string;
+        code: string;
+        role_to_grant: 'admin' | 'member';
+        max_uses?: number | null;
+        uses_count: number;
+        expires_at?: string | null;
+        revoked_at?: string | null;
+      }[];
+    }>(`/api/servers/${serverId}/invites`, {}, token),
+  createInvite: (
+    token: string,
+    serverId: string,
+    payload: { roleToGrant?: 'admin' | 'member'; maxUses?: number; expiresInHours?: number }
+  ) =>
+    request<{
+      invite: { id: string; code: string; role_to_grant: 'admin' | 'member'; max_uses?: number | null; uses_count: number };
+    }>(`/api/servers/${serverId}/invites`, { method: 'POST', body: JSON.stringify(payload) }, token),
+  revokeInvite: (token: string, serverId: string, inviteId: string) =>
+    request<{ ok: boolean }>(`/api/servers/${serverId}/invites/${inviteId}`, { method: 'DELETE' }, token),
+  inviteInfo: (token: string, code: string) =>
+    request<{
+      invite: { code: string; server_id: string; server_name: string; role_to_grant: 'admin' | 'member'; is_member: boolean };
+    }>(`/api/invites/${code}`, {}, token),
+  acceptInvite: (token: string, code: string) =>
+    request<{ ok: boolean; serverId: string }>(`/api/invites/${code}/accept`, { method: 'POST', body: '{}' }, token),
   channels: (token: string, serverId: string) =>
     request<{
       channels: {

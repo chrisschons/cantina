@@ -13,6 +13,13 @@
 
 - `GET /api/servers`
 - `POST /api/servers`
+- `GET /api/servers/:serverId/members`
+- `PUT /api/servers/:serverId/members/:memberUserId/role`
+- `GET /api/servers/:serverId/invites`
+- `POST /api/servers/:serverId/invites`
+- `DELETE /api/servers/:serverId/invites/:inviteId`
+- `GET /api/invites/:code`
+- `POST /api/invites/:code/accept`
 - `GET /api/servers/:serverId/channels`
 - `POST /api/servers/:serverId/channels`
 

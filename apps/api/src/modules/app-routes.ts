@@ -1,6 +1,6 @@
 import { createWriteStream } from 'node:fs';
 import { mkdir } from 'node:fs/promises';
-import { randomUUID } from 'node:crypto';
+import { randomBytes, randomUUID } from 'node:crypto';
 import { pipeline } from 'node:stream/promises';
 import { resolve } from 'node:path';
 
@@ -69,9 +69,46 @@ const addCollectionItemsSchema = z.object({
   libraryItemIds: z.array(z.string().uuid()).min(1).max(100)
 });
 
+const createInviteSchema = z.object({
+  roleToGrant: z.enum(['admin', 'member']).default('member'),
+  maxUses: z.number().int().positive().max(10000).optional(),
+  expiresInHours: z.number().int().positive().max(24 * 365).optional()
+});
+
+const updateMemberRoleSchema = z.object({
+  role: z.enum(['admin', 'member'])
+});
+
+type ServerRole = 'owner' | 'admin' | 'member';
+
 async function requireServerMembership(userId: string, serverId: string) {
   const membership = await pool.query('SELECT 1 FROM memberships WHERE user_id = $1 AND server_id = $2', [userId, serverId]);
   return membership.rowCount !== 0;
+}
+
+async function getServerRole(userId: string, serverId: string): Promise<ServerRole | null> {
+  const membership = await pool.query('SELECT role FROM memberships WHERE user_id = $1 AND server_id = $2', [userId, serverId]);
+  return membership.rowCount && membership.rowCount > 0 ? (membership.rows[0].role as ServerRole) : null;
+}
+
+function roleRank(role: ServerRole) {
+  if (role === 'owner') {
+    return 3;
+  }
+  if (role === 'admin') {
+    return 2;
+  }
+  return 1;
+}
+
+async function requireServerRole(userId: string, serverId: string, minimum: ServerRole) {
+  const role = await getServerRole(userId, serverId);
+
+  if (!role) {
+    return false;
+  }
+
+  return roleRank(role) >= roleRank(minimum);
 }
 
 async function loadChannel(channelId: string) {
@@ -287,6 +324,254 @@ export async function registerAppRoutes(app: FastifyInstance) {
     return { servers: result.rows };
   });
 
+  app.get('/api/servers/:serverId/members', { preHandler: authGuard }, async (request, reply) => {
+    const params = request.params as { serverId: string };
+    const userId = request.authUser!.userId;
+    const isMember = await requireServerMembership(userId, params.serverId);
+
+    if (!isMember) {
+      return reply.code(403).send({ error: 'Not a server member' });
+    }
+
+    const result = await pool.query(
+      `
+      SELECT m.user_id, m.role, m.created_at, u.handle, u.name
+      FROM memberships m
+      JOIN users u ON u.id = m.user_id
+      WHERE m.server_id = $1
+      ORDER BY
+        CASE m.role WHEN 'owner' THEN 0 WHEN 'admin' THEN 1 ELSE 2 END,
+        u.handle
+      `,
+      [params.serverId]
+    );
+
+    return { members: result.rows };
+  });
+
+  app.put('/api/servers/:serverId/members/:memberUserId/role', { preHandler: authGuard }, async (request, reply) => {
+    const params = request.params as { serverId: string; memberUserId: string };
+    const parsed = updateMemberRoleSchema.safeParse(request.body);
+
+    if (!parsed.success) {
+      return reply.code(400).send({ error: parsed.error.flatten() });
+    }
+
+    const userId = request.authUser!.userId;
+    const role = await getServerRole(userId, params.serverId);
+
+    if (role !== 'owner') {
+      return reply.code(403).send({ error: 'Owner role required' });
+    }
+
+    const targetMembership = await pool.query(
+      `
+      SELECT role
+      FROM memberships
+      WHERE server_id = $1
+        AND user_id = $2
+      `,
+      [params.serverId, params.memberUserId]
+    );
+
+    if (targetMembership.rowCount === 0) {
+      return reply.code(404).send({ error: 'Member not found' });
+    }
+
+    if (targetMembership.rows[0].role === 'owner') {
+      return reply.code(400).send({ error: 'Cannot change owner role' });
+    }
+
+    await pool.query(
+      `
+      UPDATE memberships
+      SET role = $3
+      WHERE server_id = $1
+        AND user_id = $2
+      `,
+      [params.serverId, params.memberUserId, parsed.data.role]
+    );
+
+    return { ok: true };
+  });
+
+  app.get('/api/invites/:code', { preHandler: authGuard }, async (request, reply) => {
+    const params = request.params as { code: string };
+    const userId = request.authUser!.userId;
+
+    const result = await pool.query(
+      `
+      SELECT i.id, i.code, i.server_id, i.role_to_grant, i.max_uses, i.uses_count, i.expires_at, i.revoked_at,
+             s.name AS server_name
+      FROM invites i
+      JOIN servers s ON s.id = i.server_id
+      WHERE i.code = $1
+      `,
+      [params.code]
+    );
+
+    if (result.rowCount === 0) {
+      return reply.code(404).send({ error: 'Invite not found' });
+    }
+
+    const invite = result.rows[0];
+    const isMember = await requireServerMembership(userId, invite.server_id);
+
+    return {
+      invite: {
+        ...invite,
+        is_member: isMember
+      }
+    };
+  });
+
+  app.post('/api/invites/:code/accept', { preHandler: authGuard }, async (request, reply) => {
+    const params = request.params as { code: string };
+    const userId = request.authUser!.userId;
+
+    const client = await pool.connect();
+
+    try {
+      await client.query('BEGIN');
+
+      const inviteResult = await client.query(
+        `
+        SELECT id, server_id, role_to_grant, max_uses, uses_count, expires_at, revoked_at
+        FROM invites
+        WHERE code = $1
+        FOR UPDATE
+        `,
+        [params.code]
+      );
+
+      if (inviteResult.rowCount === 0) {
+        await client.query('ROLLBACK');
+        return reply.code(404).send({ error: 'Invite not found' });
+      }
+
+      const invite = inviteResult.rows[0];
+
+      if (invite.revoked_at) {
+        await client.query('ROLLBACK');
+        return reply.code(410).send({ error: 'Invite revoked' });
+      }
+
+      if (invite.expires_at && new Date(invite.expires_at).getTime() < Date.now()) {
+        await client.query('ROLLBACK');
+        return reply.code(410).send({ error: 'Invite expired' });
+      }
+
+      if (invite.max_uses !== null && invite.uses_count >= invite.max_uses) {
+        await client.query('ROLLBACK');
+        return reply.code(410).send({ error: 'Invite usage limit reached' });
+      }
+
+      await client.query(
+        `
+        INSERT INTO memberships (user_id, server_id, role)
+        VALUES ($1, $2, $3)
+        ON CONFLICT (user_id, server_id)
+        DO NOTHING
+        `,
+        [userId, invite.server_id, invite.role_to_grant]
+      );
+
+      await client.query(
+        `
+        UPDATE invites
+        SET uses_count = uses_count + 1
+        WHERE id = $1
+        `,
+        [invite.id]
+      );
+
+      await client.query('COMMIT');
+      return { ok: true, serverId: invite.server_id };
+    } catch (error) {
+      await client.query('ROLLBACK');
+      request.log.error(error);
+      return reply.code(500).send({ error: 'Failed to accept invite' });
+    } finally {
+      client.release();
+    }
+  });
+
+  app.get('/api/servers/:serverId/invites', { preHandler: authGuard }, async (request, reply) => {
+    const params = request.params as { serverId: string };
+    const userId = request.authUser!.userId;
+    const isAdmin = await requireServerRole(userId, params.serverId, 'admin');
+
+    if (!isAdmin) {
+      return reply.code(403).send({ error: 'Admin role required' });
+    }
+
+    const result = await pool.query(
+      `
+      SELECT id, code, role_to_grant, max_uses, uses_count, expires_at, revoked_at, created_at
+      FROM invites
+      WHERE server_id = $1
+      ORDER BY created_at DESC
+      `,
+      [params.serverId]
+    );
+
+    return { invites: result.rows };
+  });
+
+  app.post('/api/servers/:serverId/invites', { preHandler: authGuard }, async (request, reply) => {
+    const params = request.params as { serverId: string };
+    const parsed = createInviteSchema.safeParse(request.body ?? {});
+
+    if (!parsed.success) {
+      return reply.code(400).send({ error: parsed.error.flatten() });
+    }
+
+    const userId = request.authUser!.userId;
+    const isAdmin = await requireServerRole(userId, params.serverId, 'admin');
+
+    if (!isAdmin) {
+      return reply.code(403).send({ error: 'Admin role required' });
+    }
+
+    const code = randomBytes(8).toString('base64url');
+    const expiresAt = parsed.data.expiresInHours
+      ? new Date(Date.now() + parsed.data.expiresInHours * 60 * 60 * 1000).toISOString()
+      : null;
+
+    const result = await pool.query(
+      `
+      INSERT INTO invites (server_id, code, created_by_user_id, role_to_grant, max_uses, expires_at)
+      VALUES ($1, $2, $3, $4, $5, $6)
+      RETURNING id, code, role_to_grant, max_uses, uses_count, expires_at, revoked_at, created_at
+      `,
+      [params.serverId, code, userId, parsed.data.roleToGrant, parsed.data.maxUses ?? null, expiresAt]
+    );
+
+    return reply.code(201).send({ invite: result.rows[0] });
+  });
+
+  app.delete('/api/servers/:serverId/invites/:inviteId', { preHandler: authGuard }, async (request, reply) => {
+    const params = request.params as { serverId: string; inviteId: string };
+    const userId = request.authUser!.userId;
+    const isAdmin = await requireServerRole(userId, params.serverId, 'admin');
+
+    if (!isAdmin) {
+      return reply.code(403).send({ error: 'Admin role required' });
+    }
+
+    await pool.query(
+      `
+      UPDATE invites
+      SET revoked_at = NOW()
+      WHERE id = $1
+        AND server_id = $2
+      `,
+      [params.inviteId, params.serverId]
+    );
+
+    return { ok: true };
+  });
+
   app.get('/api/servers/:serverId/channels', { preHandler: authGuard }, async (request, reply) => {
     const params = request.params as { serverId: string };
     const userId = request.authUser!.userId;
@@ -327,13 +612,10 @@ export async function registerAppRoutes(app: FastifyInstance) {
 
     const userId = request.authUser!.userId;
 
-    const membership = await pool.query(
-      'SELECT 1 FROM memberships WHERE user_id = $1 AND server_id = $2',
-      [userId, params.serverId]
-    );
+    const canManageChannels = await requireServerRole(userId, params.serverId, 'admin');
 
-    if (membership.rowCount === 0) {
-      return reply.code(403).send({ error: 'Not a server member' });
+    if (!canManageChannels) {
+      return reply.code(403).send({ error: 'Admin role required' });
     }
 
     const channelSlug = slugify(parsed.data.name);
@@ -510,13 +792,10 @@ export async function registerAppRoutes(app: FastifyInstance) {
 
     const userId = request.authUser!.userId;
 
-    const membership = await pool.query(
-      'SELECT role FROM memberships WHERE user_id = $1 AND server_id = $2',
-      [userId, params.serverId]
-    );
+    const canManageCommands = await requireServerRole(userId, params.serverId, 'admin');
 
-    if (membership.rowCount === 0) {
-      return reply.code(403).send({ error: 'Not a server member' });
+    if (!canManageCommands) {
+      return reply.code(403).send({ error: 'Admin role required' });
     }
 
     try {
@@ -708,6 +987,14 @@ export async function registerAppRoutes(app: FastifyInstance) {
 
     if (!isMember) {
       return reply.code(403).send({ error: 'Not a server member' });
+    }
+
+    if (parsed.data.visibility === 'public') {
+      const isAdmin = await requireServerRole(userId, parsed.data.serverId, 'admin');
+
+      if (!isAdmin) {
+        return reply.code(403).send({ error: 'Admin role required for public collections' });
+      }
     }
 
     const result = await pool.query(

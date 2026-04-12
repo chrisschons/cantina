@@ -17,11 +17,13 @@ Tincan v1 targets a single private community hosted on one server.
 - `User`
 - `Server` (community namespace)
 - `Membership` (user-server relation)
+- `Invite` (join token with optional expiration/usage constraints)
 - `Channel`
 - `Message`
 - `Reaction`
 - `ChannelPreference` (hidden/passive/active + snooze)
 - `ReadState` (per-user per-channel watermark)
+- `AuthSession` (refresh token rotation + revocation)
 
 ## API design principles
 

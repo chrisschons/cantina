@@ -10,3 +10,4 @@
 6. License: deferred (none yet)
 7. MVP direction: architecture + runnable skeleton + auth/channels/messages core first
 8. Migration model moved from startup schema bootstrap to versioned SQL migrations
+9. Role model for server authorization: `owner > admin > member` with invite links for membership onboarding
