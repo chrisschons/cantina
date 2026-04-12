@@ -49,6 +49,7 @@
 ## Search
 
 - `GET /api/search/messages?q=...&serverId=...&channelId=...`
+- Search results are ranked with Postgres full-text relevance and recency fallback
 
 ## Link Previews
 

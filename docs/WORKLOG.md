@@ -36,6 +36,8 @@
 - Fixed send validation regression so attachments can be posted without typed text
 - Updated API message/thread validators to accept `body` or `mediaItemIds` (at least one required)
 - Removed the duplicate unread section from the right sidebar to avoid redundant signal
+- Upgraded `/api/search/messages` to ranked full-text retrieval with recency tie-breakers
+- Added migration `0004_message_search_fts_indexes.sql` with GIN index on message body tsvector
 - Added Docker Compose for app + postgres + redis
 - Added API and setup docs plus version tracking
 - Validation status: runtime checks blocked in this environment (`docker`, `node`, and `pnpm` are unavailable in sandbox)

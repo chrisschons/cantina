@@ -2,10 +2,14 @@
 
 ## Priority sequence
 
-1. Improve search relevance and add dedicated Postgres full-text indexes
-2. Add OGP refresh/expiry jobs and failure retry strategy
-3. Add collection item curation UX (bulk select, remove, reorder, filters)
-4. Add library taxonomy editing and validated-vs-suggested metadata states
+1. Add OGP refresh/expiry jobs and failure retry strategy
+2. Add collection item curation UX (bulk select, remove, reorder, filters)
+3. Add library taxonomy editing and validated-vs-suggested metadata states
+4. Add search query highlighting/snippet extraction in web results
+
+## Recently completed
+
+1. Improved search relevance and added Postgres full-text index for message body search
 
 ## Hardening
 

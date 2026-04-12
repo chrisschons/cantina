@@ -909,18 +909,32 @@ export async function registerAppRoutes(app: FastifyInstance) {
 
     const result = await pool.query(
       `
+      WITH search_input AS (
+        SELECT websearch_to_tsquery('english', $2) AS query
+      )
       SELECT m.id, m.server_id, m.channel_id, m.author_user_id, m.body, m.created_at,
              u.name AS author_name, u.handle AS author_handle,
-             c.name AS channel_name, s.name AS server_name
+             c.name AS channel_name, s.name AS server_name,
+             ts_rank_cd(to_tsvector('english', COALESCE(m.body, '')), search_input.query) AS relevance
       FROM messages m
+      CROSS JOIN search_input
       JOIN users u ON u.id = m.author_user_id
       JOIN channels c ON c.id = m.channel_id
       JOIN servers s ON s.id = m.server_id
       JOIN memberships ms ON ms.server_id = m.server_id AND ms.user_id = $1
-      WHERE m.body ILIKE '%' || $2 || '%'
+      WHERE (
+        to_tsvector('english', COALESCE(m.body, '')) @@ search_input.query
+        OR m.body ILIKE '%' || $2 || '%'
+      )
         AND ($3::uuid IS NULL OR m.server_id = $3::uuid)
         AND ($4::uuid IS NULL OR m.channel_id = $4::uuid)
-      ORDER BY m.created_at DESC
+      ORDER BY
+        CASE
+          WHEN to_tsvector('english', COALESCE(m.body, '')) @@ search_input.query THEN 0
+          ELSE 1
+        END,
+        relevance DESC,
+        m.created_at DESC
       LIMIT $5
       `,
       [userId, q, serverId, channelId, limit]
