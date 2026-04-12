@@ -33,6 +33,8 @@
 - Added visible profile chip (`name` + `@handle`) next to logout to clarify app-level sign-out
 - Added unread badges directly in channel list and unread-only list filtering toggle
 - Styled read channels with muted text and unread channels with darker/high-contrast text
+- Fixed send validation regression so attachments can be posted without typed text
+- Updated API message/thread validators to accept `body` or `mediaItemIds` (at least one required)
 - Added Docker Compose for app + postgres + redis
 - Added API and setup docs plus version tracking
 - Validation status: runtime checks blocked in this environment (`docker`, `node`, and `pnpm` are unavailable in sandbox)

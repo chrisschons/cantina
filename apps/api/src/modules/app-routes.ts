@@ -21,11 +21,21 @@ const createChannelSchema = z.object({
   topic: z.string().max(200).optional()
 });
 
-const createMessageSchema = z.object({
-  body: z.string().min(1).max(4000),
-  replyToMessageId: z.string().uuid().optional(),
-  mediaItemIds: z.array(z.string().uuid()).max(10).optional()
-});
+const createMessageSchema = z
+  .object({
+    body: z.string().max(4000),
+    replyToMessageId: z.string().uuid().optional(),
+    mediaItemIds: z.array(z.string().uuid()).max(10).optional()
+  })
+  .transform((payload) => ({ ...payload, body: payload.body.trim() }))
+  .superRefine((payload, context) => {
+    if (!payload.body && (!payload.mediaItemIds || payload.mediaItemIds.length === 0)) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Message body or media attachment is required.'
+      });
+    }
+  });
 
 const markReadSchema = z.object({
   lastReadMessageId: z.string().uuid().optional()
@@ -35,10 +45,20 @@ const toggleReactionSchema = z.object({
   emoji: z.string().min(1).max(20)
 });
 
-const threadMessageSchema = z.object({
-  body: z.string().min(1).max(4000),
-  mediaItemIds: z.array(z.string().uuid()).max(10).optional()
-});
+const threadMessageSchema = z
+  .object({
+    body: z.string().max(4000),
+    mediaItemIds: z.array(z.string().uuid()).max(10).optional()
+  })
+  .transform((payload) => ({ ...payload, body: payload.body.trim() }))
+  .superRefine((payload, context) => {
+    if (!payload.body && (!payload.mediaItemIds || payload.mediaItemIds.length === 0)) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Thread message body or media attachment is required.'
+      });
+    }
+  });
 
 const updatePreferenceSchema = z.object({
   mode: z.enum(['hidden', 'passive', 'active']),

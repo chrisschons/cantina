@@ -31,5 +31,6 @@ All notable changes to this project are tracked here.
 - Added explicit profile chip in chat header and relocated app logout beside it
 - Added per-channel unread count badges in channel list rows
 - Added “Unread only” channel filter toggle and read/unread text contrast styling
+- Fixed media posting regression by allowing image/file-only messages (without text body)
 - Web MVP (React + Vite shell with auth, server/channel/message flows)
 - Docker Compose stack and setup/version documentation

@@ -416,15 +416,23 @@ export function App() {
   async function onSendMessage(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (!token || !selectedChannelId || !composer.trim()) {
+    const body = composer.trim();
+    const mediaItemIds = pendingMedia.map((media) => media.id);
+
+    if (!token || !selectedChannelId) {
+      return;
+    }
+
+    if (!body && mediaItemIds.length === 0) {
+      setError('Write a message or attach at least one file.');
       return;
     }
 
     try {
       setBusy(true);
       await api.createMessage(token, selectedChannelId, {
-        body: composer.trim(),
-        mediaItemIds: pendingMedia.map((media) => media.id)
+        body,
+        mediaItemIds
       });
       setComposer('');
       setPendingMedia([]);
@@ -983,7 +991,10 @@ export function App() {
             />
             <input type="file" onChange={onUploadFile} disabled={!selectedChannelId || busy} />
           </div>
-          <button type="submit" disabled={!selectedChannelId || busy}>
+          <button
+            type="submit"
+            disabled={!selectedChannelId || busy || (composer.trim().length === 0 && pendingMedia.length === 0)}
+          >
             Send
           </button>
           {pendingMedia.length > 0 ? (
