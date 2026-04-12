@@ -2,6 +2,9 @@ node_modules
 .pnpm-store
 .env
 .env.*
+!.env.example
+!apps/api/.env.example
+!apps/web/.env.example
 dist
 build
 coverage

@@ -10,6 +10,12 @@ Tincan is a private, self-hostable chat platform experiment inspired by Discord/
 
 This repository is being built iteratively with architecture-first documentation and frequent, auditable commits.
 
+Implemented now:
+- Backend MVP API with auth, servers/channels, messages, reactions, and unread summary
+- React web MVP for account/session, server/channel navigation, and messaging
+- Docker Compose stack for Postgres + Redis + API + Web
+- ADR and version tracking docs
+
 ## Monorepo layout
 
 - `apps/api` - backend API and realtime gateway
@@ -24,4 +30,26 @@ This repository is being built iteratively with architecture-first documentation
 - Self-hosted and Docker-first
 - Strong docs and changelog discipline
 - Extensible architecture for plugins/modules later
+<<<<<<< HEAD
 >>>>>>> c0fd2e4 (chore: initialize Tincan monorepo and docs baseline)
+=======
+
+## MVP API endpoints
+
+- `POST /api/auth/register`
+- `POST /api/auth/login`
+- `GET /api/me`
+- `GET /api/servers`
+- `POST /api/servers`
+- `GET /api/servers/:serverId/channels`
+- `POST /api/servers/:serverId/channels`
+- `GET /api/channels/:channelId/messages`
+- `POST /api/channels/:channelId/messages`
+- `POST /api/messages/:messageId/reactions/toggle`
+- `POST /api/channels/:channelId/read`
+- `GET /api/unread`
+
+## Run locally
+
+See [`docs/SETUP.md`](docs/SETUP.md).
+>>>>>>> cc648c1 (feat(web+infra): add React MVP client, docker compose stack, and runbooks)
