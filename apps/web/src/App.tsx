@@ -218,6 +218,13 @@ export function App() {
   const [collectionVisibility, setCollectionVisibility] = useState<'private' | 'public'>('private');
   const [selectedCollectionId, setSelectedCollectionId] = useState('');
   const [selectedLibraryItemIds, setSelectedLibraryItemIds] = useState<string[]>([]);
+  const [collectionItems, setCollectionItems] = useState<
+    { id: string; item_type: 'url' | 'media'; url?: string | null; title?: string | null; media_url?: string | null; channel_name?: string }[]
+  >([]);
+  const [libraryScope, setLibraryScope] = useState<'all' | 'collection'>('all');
+  const [libraryQuery, setLibraryQuery] = useState('');
+  const [libraryTypeFilter, setLibraryTypeFilter] = useState<'all' | 'url' | 'media'>('all');
+  const [librarySort, setLibrarySort] = useState<'newest' | 'oldest' | 'title'>('newest');
   const [inviteRoleToGrant, setInviteRoleToGrant] = useState<'admin' | 'member'>('member');
   const [inviteMaxUses, setInviteMaxUses] = useState('');
   const [inviteExpiresHours, setInviteExpiresHours] = useState('');
@@ -260,6 +267,35 @@ export function App() {
     () => channels.filter((channel) => !showUnreadOnly || (unreadCountByChannel.get(channel.id) ?? 0) > 0),
     [channels, showUnreadOnly, unreadCountByChannel]
   );
+
+  const activeLibraryItems = useMemo(
+    () => (libraryScope === 'collection' && selectedCollectionId ? collectionItems : libraryItems),
+    [libraryScope, selectedCollectionId, collectionItems, libraryItems]
+  );
+
+  const filteredLibraryItems = useMemo(() => {
+    const query = libraryQuery.trim().toLowerCase();
+
+    const filtered = activeLibraryItems.filter((item) => {
+      if (libraryTypeFilter !== 'all' && item.item_type !== libraryTypeFilter) {
+        return false;
+      }
+      if (!query) {
+        return true;
+      }
+      const haystack = [item.title, item.url, item.media_url, item.channel_name].filter(Boolean).join(' ').toLowerCase();
+      return haystack.includes(query);
+    });
+
+    const sorted = [...filtered];
+    if (librarySort === 'title') {
+      sorted.sort((a, b) => (a.title || a.url || '').localeCompare(b.title || b.url || ''));
+    } else if (librarySort === 'oldest') {
+      sorted.reverse();
+    }
+
+    return sorted;
+  }, [activeLibraryItems, libraryQuery, libraryTypeFilter, librarySort]);
 
   const galleryImages = useMemo(
     () =>
@@ -351,6 +387,22 @@ export function App() {
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [lightboxIndex, galleryImages.length]);
+
+  useEffect(() => {
+    if (!token || !selectedCollectionId) {
+      setCollectionItems([]);
+      return;
+    }
+
+    void (async () => {
+      try {
+        const result = await api.collectionItems(token, selectedCollectionId);
+        setCollectionItems(result.items);
+      } catch {
+        setCollectionItems([]);
+      }
+    })();
+  }, [token, selectedCollectionId]);
 
   async function bootstrap(nextToken: string) {
     try {
@@ -754,6 +806,24 @@ export function App() {
       setSelectedLibraryItemIds([]);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Failed to add items to collection');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function onRemoveSelectedFromCollection() {
+    if (!token || !selectedCollectionId || selectedLibraryItemIds.length === 0) {
+      return;
+    }
+
+    try {
+      setBusy(true);
+      await api.removeCollectionItems(token, selectedCollectionId, selectedLibraryItemIds);
+      setSelectedLibraryItemIds([]);
+      const result = await api.collectionItems(token, selectedCollectionId);
+      setCollectionItems(result.items);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Failed to remove items from collection');
     } finally {
       setBusy(false);
     }
@@ -1332,6 +1402,27 @@ export function App() {
                   </option>
                 ))}
               </select>
+              <select value={libraryScope} onChange={(event) => setLibraryScope(event.target.value as 'all' | 'collection')}>
+                <option value="all">All library</option>
+                <option value="collection" disabled={!selectedCollectionId}>
+                  Selected collection
+                </option>
+              </select>
+              <input
+                placeholder="Filter library"
+                value={libraryQuery}
+                onChange={(event) => setLibraryQuery(event.target.value)}
+              />
+              <select value={libraryTypeFilter} onChange={(event) => setLibraryTypeFilter(event.target.value as 'all' | 'url' | 'media')}>
+                <option value="all">All types</option>
+                <option value="url">Links</option>
+                <option value="media">Media</option>
+              </select>
+              <select value={librarySort} onChange={(event) => setLibrarySort(event.target.value as 'newest' | 'oldest' | 'title')}>
+                <option value="newest">Newest first</option>
+                <option value="oldest">Oldest first</option>
+                <option value="title">Title A-Z</option>
+              </select>
               <button
                 type="button"
                 onClick={() => void onAddSelectedToCollection()}
@@ -1339,9 +1430,17 @@ export function App() {
               >
                 Add Selected
               </button>
+              <button
+                className="ghost"
+                type="button"
+                onClick={() => void onRemoveSelectedFromCollection()}
+                disabled={!selectedCollectionId || libraryScope !== 'collection' || selectedLibraryItemIds.length === 0}
+              >
+                Remove Selected
+              </button>
             </div>
             <div className="library-list">
-              {libraryItems.slice(0, 30).map((item) => (
+              {filteredLibraryItems.slice(0, 60).map((item) => (
                 <label key={item.id} className="library-item">
                   <input
                     checked={selectedLibraryItemIds.includes(item.id)}
@@ -1355,7 +1454,7 @@ export function App() {
                   <span>{item.title || item.url || item.media_url || 'Untitled item'}</span>
                 </label>
               ))}
-              {libraryItems.length === 0 ? <p className="panel-note">No library items yet for this context.</p> : null}
+              {filteredLibraryItems.length === 0 ? <p className="panel-note">No library items match this view.</p> : null}
             </div>
           </section>
         )}

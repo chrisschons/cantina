@@ -242,6 +242,23 @@ export const api = {
       { method: 'POST', body: JSON.stringify({ libraryItemIds }) },
       token
     ),
+  removeCollectionItems: (token: string, collectionId: string, libraryItemIds: string[]) =>
+    request<{ removed: number }>(
+      `/api/library/collections/${collectionId}/items`,
+      { method: 'DELETE', body: JSON.stringify({ libraryItemIds }) },
+      token
+    ),
+  collectionItems: (token: string, collectionId: string) =>
+    request<{
+      items: {
+        id: string;
+        item_type: 'url' | 'media';
+        url?: string | null;
+        title?: string | null;
+        description?: string | null;
+        media_url?: string | null;
+      }[];
+    }>(`/api/library/collections/${collectionId}/items`, {}, token),
   userCommands: (token: string) =>
     request<{ commands: { id: string; command: string; response_text: string }[] }>('/api/me/commands', {}, token),
   createUserCommand: (token: string, payload: { command: string; responseText: string }) =>

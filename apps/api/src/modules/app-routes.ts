@@ -90,6 +90,10 @@ const addCollectionItemsSchema = z.object({
   libraryItemIds: z.array(z.string().uuid()).min(1).max(100)
 });
 
+const removeCollectionItemsSchema = z.object({
+  libraryItemIds: z.array(z.string().uuid()).min(1).max(100)
+});
+
 const createInviteSchema = z.object({
   roleToGrant: z.enum(['admin', 'member']).default('member'),
   maxUses: z.number().int().positive().max(10000).optional(),
@@ -1073,6 +1077,51 @@ export async function registerAppRoutes(app: FastifyInstance) {
     }
 
     return { added: validItems.rows.length };
+  });
+
+  app.delete('/api/library/collections/:collectionId/items', { preHandler: authGuard }, async (request, reply) => {
+    const params = request.params as { collectionId: string };
+    const parsed = removeCollectionItemsSchema.safeParse(request.body);
+    const userId = request.authUser!.userId;
+
+    if (!parsed.success) {
+      return reply.code(400).send({ error: parsed.error.flatten() });
+    }
+
+    const collectionResult = await pool.query(
+      `
+      SELECT id, server_id, visibility, created_by_user_id
+      FROM collections
+      WHERE id = $1
+      `,
+      [params.collectionId]
+    );
+
+    if (collectionResult.rowCount === 0) {
+      return reply.code(404).send({ error: 'Collection not found' });
+    }
+
+    const collection = collectionResult.rows[0];
+    const isMember = await requireServerMembership(userId, collection.server_id);
+
+    if (!isMember) {
+      return reply.code(403).send({ error: 'Not a server member' });
+    }
+
+    if (collection.visibility === 'private' && collection.created_by_user_id !== userId) {
+      return reply.code(403).send({ error: 'Collection is private' });
+    }
+
+    const removed = await pool.query(
+      `
+      DELETE FROM collection_items
+      WHERE collection_id = $1
+        AND library_item_id = ANY($2::uuid[])
+      `,
+      [params.collectionId, parsed.data.libraryItemIds]
+    );
+
+    return { removed: removed.rowCount ?? 0 };
   });
 
   app.get('/api/channels/:channelId/messages', { preHandler: authGuard }, async (request, reply) => {

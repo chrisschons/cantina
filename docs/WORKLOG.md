@@ -58,6 +58,8 @@
 - Added YouTube URL detection and inline iframe embeds in message link preview cards
 - Added Spotify/Apple music link detection and rendered embedded player cards
 - Added paired “Play on Spotify/Apple Music” actions in music preview cards
+- Added collection-items fetch/remove flows and new API delete endpoint for library curation
+- Expanded library UI with scope (`all` vs selected collection), search filter, type filter, and sort controls
 - Added Docker Compose for app + postgres + redis
 - Added API and setup docs plus version tracking
 - Validation status: runtime checks blocked in this environment (`docker`, `node`, and `pnpm` are unavailable in sandbox)

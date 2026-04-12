@@ -50,5 +50,6 @@ All notable changes to this project are tracked here.
 - Added Colorbox-style image lightbox for chat attachments (centered modal with gallery navigation)
 - Added inline YouTube embeds in link previews for playable video cards
 - Added dual-service music preview cards for Spotify/Apple links with play options for both platforms
+- Improved library workspace curation UX with scope/filter/sort controls and collection item removal
 - Web MVP (React + Vite shell with auth, server/channel/message flows)
 - Docker Compose stack and setup/version documentation

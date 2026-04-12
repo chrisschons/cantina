@@ -715,7 +715,7 @@ button.ghost {
 
 .library-toolbar {
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.45rem;
   align-items: center;
 }
