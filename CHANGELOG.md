@@ -48,5 +48,6 @@ All notable changes to this project are tracked here.
 - Expanded link cards to show title, description, and source URL
 - Changed OGP card layout to thumbnail-left/text-right and reduced thumbnail height to 105px
 - Added Colorbox-style image lightbox for chat attachments (centered modal with gallery navigation)
+- Added inline YouTube embeds in link previews for playable video cards
 - Web MVP (React + Vite shell with auth, server/channel/message flows)
 - Docker Compose stack and setup/version documentation

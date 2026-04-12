@@ -67,6 +67,37 @@ function extractUrls(text: string) {
   return [...new Set(matches)];
 }
 
+function getYouTubeEmbedUrl(rawUrl: string) {
+  try {
+    const parsed = new URL(rawUrl);
+    const host = parsed.hostname.replace(/^www\./, '');
+
+    if (host === 'youtube.com' || host === 'm.youtube.com') {
+      if (parsed.pathname === '/watch') {
+        const id = parsed.searchParams.get('v');
+        return id ? `https://www.youtube.com/embed/${id}` : null;
+      }
+      if (parsed.pathname.startsWith('/shorts/')) {
+        const id = parsed.pathname.split('/')[2];
+        return id ? `https://www.youtube.com/embed/${id}` : null;
+      }
+      if (parsed.pathname.startsWith('/embed/')) {
+        const id = parsed.pathname.split('/')[2];
+        return id ? `https://www.youtube.com/embed/${id}` : null;
+      }
+    }
+
+    if (host === 'youtu.be') {
+      const id = parsed.pathname.replace('/', '').trim();
+      return id ? `https://www.youtube.com/embed/${id}` : null;
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
+}
+
 export function App() {
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [token, setToken] = useState(() => localStorage.getItem(TOKEN_KEY) ?? '');
@@ -1093,6 +1124,28 @@ export function App() {
                 <div className="link-previews">
                   {extractUrls(message.body).map((url) => {
                     const preview = linkPreviews[url];
+                    const youtubeEmbedUrl = getYouTubeEmbedUrl(url);
+
+                    if (youtubeEmbedUrl) {
+                      return (
+                        <article className="preview-card has-video" key={`${message.id}-${url}`}>
+                          <iframe
+                            src={youtubeEmbedUrl}
+                            title={preview?.title || 'YouTube video'}
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                            allowFullScreen
+                          />
+                          <div className="preview-copy">
+                            <strong>{preview?.title || 'YouTube video'}</strong>
+                            {preview?.description ? <span className="preview-description">{preview.description}</span> : null}
+                            <a className="preview-url-link" href={url} rel="noreferrer" target="_blank">
+                              {url}
+                            </a>
+                          </div>
+                        </article>
+                      );
+                    }
+
                     return (
                       <a
                         className={preview?.image_url ? 'preview-card has-image' : 'preview-card'}

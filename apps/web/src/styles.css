@@ -433,6 +433,18 @@ button.ghost {
   align-items: start;
 }
 
+.preview-card.has-video {
+  gap: 0.4rem;
+}
+
+.preview-card.has-video iframe {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #000;
+}
+
 .preview-card img {
   width: auto;
   max-width: 100%;
@@ -462,6 +474,13 @@ button.ghost {
   font-size: 0.68rem;
   opacity: 0.85;
   word-break: break-all;
+}
+
+.preview-url-link {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  word-break: break-all;
+  text-decoration: underline;
 }
 
 .attachments img {
