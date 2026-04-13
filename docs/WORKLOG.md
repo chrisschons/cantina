@@ -22,6 +22,8 @@
 - Replaced `tincan-logo.png` with updated user-provided logo
 - Regenerated favicon assets (`favicon.ico`, `favicon-192.png`, `favicon-512.png`) from updated logo
 - Increased rail icon size to 44x44 and reduced rail button padding for fuller icon coverage
+- Converted rail buttons to square tiles and cropped icon rendering to square fill (`object-fit: cover`)
+- Disabled hover translate on rail buttons to avoid icon overflow beyond the rail bounds
 
 ## 2026-04-12
 

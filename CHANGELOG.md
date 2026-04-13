@@ -66,5 +66,6 @@ All notable changes to this project are tracked here.
 - Swapped text rail markers for user-provided icon assets
 - Replaced temporary logo with updated user-provided logo and regenerated favicon assets
 - Increased rail icon scale and reduced button padding so icons fill the nav buttons
+- Made rail nav buttons true square tiles, switched icons to square crop fill, and disabled rail hover shift to prevent overflow
 - Web MVP (React + Vite shell with auth, server/channel/message flows)
 - Docker Compose stack and setup/version documentation
