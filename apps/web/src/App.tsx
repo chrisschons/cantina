@@ -1192,12 +1192,12 @@ export function App() {
         </div>
         <nav className="rail-nav">
           <button
-            aria-label="Servers"
-            className={leftRailTab === 'servers' ? 'item rail-button active' : 'item rail-button'}
-            onClick={() => setLeftRailTab('servers')}
+            aria-label="Channels"
+            className={leftRailTab === 'channels' ? 'item rail-button active' : 'item rail-button'}
+            onClick={() => setLeftRailTab('channels')}
             type="button"
           >
-            S
+            <img className="rail-icon" src="/icon-channels.png" alt="" />
           </button>
           <button
             aria-label="Direct messages"
@@ -1205,15 +1205,15 @@ export function App() {
             onClick={() => setLeftRailTab('dms')}
             type="button"
           >
-            DM
+            <img className="rail-icon" src="/icon-dms.png" alt="" />
           </button>
           <button
-            aria-label="Channels"
-            className={leftRailTab === 'channels' ? 'item rail-button active' : 'item rail-button'}
-            onClick={() => setLeftRailTab('channels')}
+            aria-label="Servers"
+            className={leftRailTab === 'servers' ? 'item rail-button active' : 'item rail-button'}
+            onClick={() => setLeftRailTab('servers')}
             type="button"
           >
-            #
+            <img className="rail-icon" src="/icon-servers.png" alt="" />
           </button>
         </nav>
       </aside>

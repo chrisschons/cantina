@@ -256,9 +256,14 @@ button.ghost {
   min-height: 48px;
   display: grid;
   place-items: center;
-  font-size: 0.74rem;
-  font-weight: 800;
-  letter-spacing: 0.02em;
+  padding: 0.35rem;
+}
+
+.rail-icon {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+  display: block;
 }
 
 .channels-header {

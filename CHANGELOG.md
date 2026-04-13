@@ -62,5 +62,8 @@ All notable changes to this project are tracked here.
 - Fixed selected-collection library cards to hydrate missing preview/channel metadata from server library cache
 - Fixed library card text rendering to decode HTML entities in title/description content
 - Added TIDAL as a third music destination in music preview cards alongside Spotify and Apple Music
+- Reordered left rail navigation to `Channels`, `DMs`, then `Servers`
+- Swapped text rail markers for user-provided icon assets
+- Replaced temporary logo with updated user-provided logo and regenerated favicon assets
 - Web MVP (React + Vite shell with auth, server/channel/message flows)
 - Docker Compose stack and setup/version documentation

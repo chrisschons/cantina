@@ -17,6 +17,10 @@
 - Fixed selected-collection card hydration by merging collection items with cached all-library metadata by `id`
 - Decoded HTML entities for library title/description display (e.g. `&quot;`, `&#39;`, `&amp;`)
 - Extended music preview card actions to include TIDAL for Spotify/Apple links
+- Reordered left rail tab buttons to `Channels -> DMs -> Servers`
+- Copied user-provided rail icon assets into `apps/web/public` and wired them in rail buttons
+- Replaced `tincan-logo.png` with updated user-provided logo
+- Regenerated favicon assets (`favicon.ico`, `favicon-192.png`, `favicon-512.png`) from updated logo
 
 ## 2026-04-12
 
