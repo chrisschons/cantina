@@ -21,6 +21,7 @@
 - Copied user-provided rail icon assets into `apps/web/public` and wired them in rail buttons
 - Replaced `tincan-logo.png` with updated user-provided logo
 - Regenerated favicon assets (`favicon.ico`, `favicon-192.png`, `favicon-512.png`) from updated logo
+- Increased rail icon size to 44x44 and reduced rail button padding for fuller icon coverage
 
 ## 2026-04-12
 
