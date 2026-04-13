@@ -116,3 +116,4 @@
 - Added client-side fallback for `updateLibraryItem` requests (PATCH, then PUT, then POST metadata)
 - Decoded OGP HTML entities inside librarian metadata editor drafts for readable editing
 - Added targeted library metadata save error messaging for missing API routes (version mismatch/restart hint)
+- Fixed Fastify handler typing for library metadata alias routes to restore API build/start in Docker

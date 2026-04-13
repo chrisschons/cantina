@@ -4,7 +4,7 @@ import { randomBytes, randomUUID } from 'node:crypto';
 import { pipeline } from 'node:stream/promises';
 import { resolve } from 'node:path';
 
-import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
+import { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 
 import { config } from '../config.js';
@@ -929,10 +929,7 @@ export async function registerAppRoutes(app: FastifyInstance) {
     return { items: result.rows };
   });
 
-  const updateLibraryItemMetadataHandler = async (
-    request: FastifyRequest<{ Params: { itemId: string } }>,
-    reply: FastifyReply
-  ) => {
+  const updateLibraryItemMetadataHandler = async (request: any, reply: any) => {
     const params = request.params as { itemId: string };
     const parsed = updateLibraryItemMetadataSchema.safeParse(request.body);
     const userId = request.authUser!.userId;

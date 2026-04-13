@@ -91,3 +91,4 @@ All notable changes to this project are tracked here.
 - Added web API fallback sequence for library metadata updates (PATCH -> PUT -> POST metadata) to avoid 404 save failures
 - Improved metadata editor draft rendering by decoding HTML entities in title/description fields
 - Added clear runtime guidance when all metadata update route aliases return 404 (API restart/rebuild required)
+- Fixed API TypeScript route handler signature mismatch that prevented container startup for library metadata aliases
