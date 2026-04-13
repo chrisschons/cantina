@@ -277,7 +277,7 @@ function getMusicPreview(url: string, preview?: LinkPreview): MusicPreview | nul
 }
 
 export function App() {
-  const [mode, setMode] = useState<'login' | 'register'>('login');
+  const [mode, setMode] = useState<'login' | 'register' | 'forgot'>('login');
   const [token, setToken] = useState(() => localStorage.getItem(TOKEN_KEY) ?? '');
   const [refreshToken, setRefreshToken] = useState(() => localStorage.getItem(REFRESH_TOKEN_KEY) ?? '');
   const [user, setUser] = useState<User | null>(null);
@@ -294,6 +294,11 @@ export function App() {
     name: '',
     handle: ''
   });
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [resetToken, setResetToken] = useState('');
+  const [resetNewPassword, setResetNewPassword] = useState('');
+  const [resetTokenPreview, setResetTokenPreview] = useState('');
+  const [resetTokenExpiresAt, setResetTokenExpiresAt] = useState('');
   const [serverName, setServerName] = useState('');
   const [channelName, setChannelName] = useState('');
   const [composer, setComposer] = useState('');
@@ -367,6 +372,11 @@ export function App() {
     avatarUrl: '',
     avatarThumbUrl: '',
     homeServerId: ''
+  });
+  const [changePasswordForm, setChangePasswordForm] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmNewPassword: ''
   });
   const accountMenuRef = useRef<HTMLDivElement | null>(null);
 
@@ -816,6 +826,10 @@ export function App() {
     event.preventDefault();
     setError('');
 
+    if (mode === 'forgot') {
+      return;
+    }
+
     try {
       setBusy(true);
       const result =
@@ -838,6 +852,47 @@ export function App() {
       setUser(result.user);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Authentication failed');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function onRequestPasswordReset(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!forgotEmail.trim()) {
+      return;
+    }
+
+    try {
+      setBusy(true);
+      const result = await api.forgotPassword({ email: forgotEmail.trim().toLowerCase() });
+      setResetTokenPreview(result.resetToken ?? '');
+      setResetTokenExpiresAt(result.expiresAt ?? '');
+      setError('');
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Failed to request password reset');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function onResetPassword(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!resetToken.trim() || !resetNewPassword.trim()) {
+      return;
+    }
+
+    try {
+      setBusy(true);
+      await api.resetPassword({ token: resetToken.trim(), newPassword: resetNewPassword.trim() });
+      setError('');
+      setMode('login');
+      setResetToken('');
+      setResetNewPassword('');
+      setResetTokenPreview('');
+      setResetTokenExpiresAt('');
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Failed to reset password');
     } finally {
       setBusy(false);
     }
@@ -1553,6 +1608,33 @@ export function App() {
     }
   }
 
+  async function onChangePassword(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!token) {
+      return;
+    }
+
+    if (changePasswordForm.newPassword !== changePasswordForm.confirmNewPassword) {
+      setError('New passwords do not match');
+      return;
+    }
+
+    try {
+      setBusy(true);
+      await api.changePassword(token, {
+        currentPassword: changePasswordForm.currentPassword,
+        newPassword: changePasswordForm.newPassword
+      });
+      setChangePasswordForm({ currentPassword: '', newPassword: '', confirmNewPassword: '' });
+      setError('Password updated. Please log in again.');
+      await logout();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Failed to change password');
+    } finally {
+      setBusy(false);
+    }
+  }
+
   if (!token || !user) {
     return (
       <main className="auth-shell">
@@ -1560,44 +1642,98 @@ export function App() {
           <img className="auth-logo" src="/tincan-logo.svg" alt="Tincan logo" />
           <h1>Tincan</h1>
           <p>Private chat for your own people.</p>
-          <form autoComplete="off" onSubmit={onAuthSubmit}>
-            {mode === 'register' ? (
-              <>
+          {mode === 'forgot' ? (
+            <>
+              <form autoComplete="off" onSubmit={onRequestPasswordReset}>
                 <input
-                  placeholder="Name"
-                  value={authForm.name}
-                  onChange={(event) => setAuthForm((prev) => ({ ...prev, name: event.target.value }))}
+                  placeholder="Email"
+                  type="email"
+                  value={forgotEmail}
+                  onChange={(event) => setForgotEmail(event.target.value)}
+                  required
+                />
+                <button disabled={busy} type="submit">
+                  Request reset token
+                </button>
+              </form>
+              {resetTokenPreview ? (
+                <div className="reset-token-box">
+                  <strong>Recovery token</strong>
+                  <code>{resetTokenPreview}</code>
+                  {resetTokenExpiresAt ? <span>Expires: {new Date(resetTokenExpiresAt).toLocaleString()}</span> : null}
+                </div>
+              ) : null}
+              <form autoComplete="off" onSubmit={onResetPassword}>
+                <input
+                  placeholder="Reset token"
+                  value={resetToken}
+                  onChange={(event) => setResetToken(event.target.value)}
                   required
                 />
                 <input
-                  placeholder="Handle"
-                  value={authForm.handle}
-                  onChange={(event) => setAuthForm((prev) => ({ ...prev, handle: event.target.value }))}
+                  placeholder="New password"
+                  type="password"
+                  value={resetNewPassword}
+                  onChange={(event) => setResetNewPassword(event.target.value)}
                   required
                 />
-              </>
-            ) : null}
-            <input
-              placeholder="Email"
-              type="email"
-              value={authForm.email}
-              onChange={(event) => setAuthForm((prev) => ({ ...prev, email: event.target.value }))}
-              required
-            />
-            <input
-              placeholder="Password"
-              type="password"
-              value={authForm.password}
-              onChange={(event) => setAuthForm((prev) => ({ ...prev, password: event.target.value }))}
-              required
-            />
-            <button disabled={busy} type="submit">
-              {mode === 'login' ? 'Log in' : 'Create account'}
-            </button>
-          </form>
-          <button className="ghost" onClick={() => setMode(mode === 'login' ? 'register' : 'login')}>
-            {mode === 'login' ? 'Need an account?' : 'Already have an account?'}
-          </button>
+                <button disabled={busy} type="submit">
+                  Reset password
+                </button>
+              </form>
+              <button className="ghost" onClick={() => setMode('login')}>
+                Back to login
+              </button>
+            </>
+          ) : (
+            <>
+              <form autoComplete="off" onSubmit={onAuthSubmit}>
+                {mode === 'register' ? (
+                  <>
+                    <input
+                      placeholder="Name"
+                      value={authForm.name}
+                      onChange={(event) => setAuthForm((prev) => ({ ...prev, name: event.target.value }))}
+                      required
+                    />
+                    <input
+                      placeholder="Handle"
+                      value={authForm.handle}
+                      onChange={(event) => setAuthForm((prev) => ({ ...prev, handle: event.target.value }))}
+                      required
+                    />
+                  </>
+                ) : null}
+                <input
+                  placeholder="Email"
+                  type="email"
+                  value={authForm.email}
+                  onChange={(event) => setAuthForm((prev) => ({ ...prev, email: event.target.value }))}
+                  required
+                />
+                <input
+                  placeholder="Password"
+                  type="password"
+                  value={authForm.password}
+                  onChange={(event) => setAuthForm((prev) => ({ ...prev, password: event.target.value }))}
+                  required
+                />
+                <button disabled={busy} type="submit">
+                  {mode === 'login' ? 'Log in' : 'Create account'}
+                </button>
+              </form>
+              <div className="auth-links">
+                <button className="ghost" onClick={() => setMode(mode === 'login' ? 'register' : 'login')}>
+                  {mode === 'login' ? 'Need an account?' : 'Already have an account?'}
+                </button>
+                {mode === 'login' ? (
+                  <button className="ghost" onClick={() => setMode('forgot')}>
+                    Forgot password?
+                  </button>
+                ) : null}
+              </div>
+            </>
+          )}
           {error ? <pre className="error">{error}</pre> : null}
         </section>
       </main>
@@ -2466,6 +2602,35 @@ export function App() {
                     <span>Keep channels panel on unread-only mode</span>
                   </label>
                 </div>
+                <hr />
+                <h4>Password</h4>
+                <p className="panel-note">Change password while logged in.</p>
+                <form autoComplete="off" className="account-password-form" onSubmit={onChangePassword}>
+                  <input
+                    type="password"
+                    placeholder="Current password"
+                    value={changePasswordForm.currentPassword}
+                    onChange={(event) => setChangePasswordForm((prev) => ({ ...prev, currentPassword: event.target.value }))}
+                    required
+                  />
+                  <input
+                    type="password"
+                    placeholder="New password"
+                    value={changePasswordForm.newPassword}
+                    onChange={(event) => setChangePasswordForm((prev) => ({ ...prev, newPassword: event.target.value }))}
+                    required
+                  />
+                  <input
+                    type="password"
+                    placeholder="Confirm new password"
+                    value={changePasswordForm.confirmNewPassword}
+                    onChange={(event) => setChangePasswordForm((prev) => ({ ...prev, confirmNewPassword: event.target.value }))}
+                    required
+                  />
+                  <button type="submit" disabled={busy}>
+                    Update Password
+                  </button>
+                </form>
               </article>
             ) : null}
 

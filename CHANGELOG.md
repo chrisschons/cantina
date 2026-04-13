@@ -100,3 +100,6 @@ All notable changes to this project are tracked here.
 - Expanded profile model with `home_server_id` and `avatar_thumb_url` via migration `0007_user_profile_fields.sql`
 - Added profile update API (`PATCH /api/me`) for name, handle, email, bio, avatar URLs, and home server id
 - Expanded profile workspace UI with editable fields, home server selector, and profile photos strip from user-tagged library media
+- Added password change flow for logged-in users (`POST /api/auth/change-password`) and session revocation on change
+- Added password recovery flow (`POST /api/auth/forgot-password` + `POST /api/auth/reset-password`) with one-time expiring reset tokens
+- Added auth UI for forgot/reset password and account settings UI for in-session password updates

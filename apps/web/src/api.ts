@@ -42,6 +42,15 @@ export const api = {
     request<AuthResult>('/api/auth/login', { method: 'POST', body: JSON.stringify(payload) }),
   refresh: (payload: { refreshToken: string }) =>
     request<AuthResult>('/api/auth/refresh', { method: 'POST', body: JSON.stringify(payload) }),
+  forgotPassword: (payload: { email: string }) =>
+    request<{ ok: boolean; resetToken?: string; expiresAt?: string }>('/api/auth/forgot-password', {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    }),
+  resetPassword: (payload: { token: string; newPassword: string }) =>
+    request<{ ok: boolean }>('/api/auth/reset-password', { method: 'POST', body: JSON.stringify(payload) }),
+  changePassword: (token: string, payload: { currentPassword: string; newPassword: string }) =>
+    request<{ ok: boolean }>('/api/auth/change-password', { method: 'POST', body: JSON.stringify(payload) }, token),
   logout: (payload: { refreshToken: string }) =>
     request<{ ok: boolean }>('/api/auth/logout', { method: 'POST', body: JSON.stringify(payload) }),
   logoutAll: (token: string) => request<{ ok: boolean }>('/api/auth/logout-all', { method: 'POST', body: '{}' }, token),

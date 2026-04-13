@@ -30,11 +30,29 @@ const logoutSchema = z.object({
   refreshToken: z.string().min(20)
 });
 
+const changePasswordSchema = z.object({
+  currentPassword: z.string().min(8),
+  newPassword: z.string().min(8)
+});
+
+const forgotPasswordSchema = z.object({
+  email: z.string().email()
+});
+
+const resetPasswordSchema = z.object({
+  token: z.string().min(20),
+  newPassword: z.string().min(8)
+});
+
 function hashToken(value: string) {
   return createHash('sha256').update(value).digest('hex');
 }
 
 function generateRefreshToken() {
+  return randomBytes(48).toString('hex');
+}
+
+function generatePasswordResetToken() {
   return randomBytes(48).toString('hex');
 }
 
@@ -287,6 +305,97 @@ export async function registerAuthRoutes(app: FastifyInstance) {
       `,
       [userId]
     );
+
+    return { ok: true };
+  });
+
+  app.post('/api/auth/change-password', { preHandler: authGuard }, async (request, reply) => {
+    const parsed = changePasswordSchema.safeParse(request.body);
+    if (!parsed.success) {
+      return reply.code(400).send({ error: parsed.error.flatten() });
+    }
+
+    const userId = request.authUser!.userId;
+    const result = await pool.query('SELECT password_hash FROM users WHERE id = $1', [userId]);
+    const user = result.rows[0];
+
+    if (!user) {
+      return reply.code(404).send({ error: 'User not found' });
+    }
+
+    const ok = await bcrypt.compare(parsed.data.currentPassword, user.password_hash);
+    if (!ok) {
+      return reply.code(401).send({ error: 'Current password is incorrect' });
+    }
+
+    const nextHash = await bcrypt.hash(parsed.data.newPassword, 12);
+    await pool.query('UPDATE users SET password_hash = $2, updated_at = NOW() WHERE id = $1', [userId, nextHash]);
+    await pool.query('UPDATE auth_sessions SET revoked_at = NOW() WHERE user_id = $1 AND revoked_at IS NULL', [userId]);
+    await pool.query('UPDATE password_reset_tokens SET used_at = NOW() WHERE user_id = $1 AND used_at IS NULL', [userId]);
+
+    return { ok: true };
+  });
+
+  app.post('/api/auth/forgot-password', async (request, reply) => {
+    const parsed = forgotPasswordSchema.safeParse(request.body);
+    if (!parsed.success) {
+      return reply.code(400).send({ error: parsed.error.flatten() });
+    }
+
+    const email = parsed.data.email.toLowerCase();
+    const userResult = await pool.query('SELECT id FROM users WHERE email = $1', [email]);
+
+    // Always return success to avoid account enumeration.
+    if (userResult.rowCount === 0) {
+      return { ok: true };
+    }
+
+    const userId = userResult.rows[0].id as string;
+    const rawToken = generatePasswordResetToken();
+    const tokenHash = hashToken(rawToken);
+    const expiresAt = new Date(Date.now() + 1000 * 60 * 30); // 30 minutes
+
+    await pool.query('UPDATE password_reset_tokens SET used_at = NOW() WHERE user_id = $1 AND used_at IS NULL', [userId]);
+    await pool.query(
+      `
+      INSERT INTO password_reset_tokens (user_id, token_hash, expires_at)
+      VALUES ($1, $2, $3)
+      `,
+      [userId, tokenHash, expiresAt.toISOString()]
+    );
+
+    // Private/self-hosted mode: return token directly so users can recover without email infra.
+    return { ok: true, resetToken: rawToken, expiresAt: expiresAt.toISOString() };
+  });
+
+  app.post('/api/auth/reset-password', async (request, reply) => {
+    const parsed = resetPasswordSchema.safeParse(request.body);
+    if (!parsed.success) {
+      return reply.code(400).send({ error: parsed.error.flatten() });
+    }
+
+    const tokenHash = hashToken(parsed.data.token);
+    const tokenResult = await pool.query(
+      `
+      SELECT id, user_id
+      FROM password_reset_tokens
+      WHERE token_hash = $1
+        AND used_at IS NULL
+        AND expires_at > NOW()
+      `,
+      [tokenHash]
+    );
+
+    if (tokenResult.rowCount === 0) {
+      return reply.code(400).send({ error: 'Reset token is invalid or expired' });
+    }
+
+    const reset = tokenResult.rows[0];
+    const nextHash = await bcrypt.hash(parsed.data.newPassword, 12);
+
+    await pool.query('UPDATE users SET password_hash = $2, updated_at = NOW() WHERE id = $1', [reset.user_id, nextHash]);
+    await pool.query('UPDATE password_reset_tokens SET used_at = NOW() WHERE user_id = $1 AND used_at IS NULL', [reset.user_id]);
+    await pool.query('UPDATE auth_sessions SET revoked_at = NOW() WHERE user_id = $1 AND revoked_at IS NULL', [reset.user_id]);
 
     return { ok: true };
   });

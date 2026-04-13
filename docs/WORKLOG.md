@@ -125,3 +125,6 @@
 - Added migration for user profile fields: `home_server_id` and `avatar_thumb_url`
 - Added authenticated profile update endpoint and validation, including membership check for selected home server
 - Built richer Profile view in account workspace with editable identity fields, avatar full/thumb URLs, bio, and user media gallery
+- Added migration `0008_password_reset_tokens.sql` for secure password recovery tokens
+- Implemented auth routes for change-password and forgot/reset-password with token hashing and expiry checks
+- Added web forms for forgot/reset on login screen and change-password in account settings
