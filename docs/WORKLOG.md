@@ -24,6 +24,7 @@
 - Increased rail icon size to 44x44 and reduced rail button padding for fuller icon coverage
 - Converted rail buttons to square tiles and cropped icon rendering to square fill (`object-fit: cover`)
 - Disabled hover translate on rail buttons to avoid icon overflow beyond the rail bounds
+- Adjusted rail icon fit to `contain` at 86% with button inset padding to eliminate clipping
 
 ## 2026-04-12
 
