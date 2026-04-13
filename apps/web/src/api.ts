@@ -262,6 +262,13 @@ export const api = {
           // Continue to fallback aliases for 404/method mismatch or proxy behavior differences.
         }
       }
+      if (
+        lastError?.message.includes('Route') &&
+        lastError.message.includes('/api/library/items/') &&
+        lastError.message.includes('not found')
+      ) {
+        throw new Error('API metadata update route unavailable (all aliases returned 404). Restart/rebuild API service.');
+      }
       throw lastError ?? new Error('Failed to update library item');
     })(),
   collections: (token: string, serverId: string) =>

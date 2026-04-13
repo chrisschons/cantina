@@ -114,3 +114,5 @@
 - Added taxonomy autocomplete suggestion list and fallback vocabulary suggestions to keep suggest box populated
 - Added alias metadata update routes in API so library term/title/description saves work across mixed client/server versions
 - Added client-side fallback for `updateLibraryItem` requests (PATCH, then PUT, then POST metadata)
+- Decoded OGP HTML entities inside librarian metadata editor drafts for readable editing
+- Added targeted library metadata save error messaging for missing API routes (version mismatch/restart hint)

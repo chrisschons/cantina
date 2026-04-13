@@ -1042,8 +1042,8 @@ export function App() {
 
   function onSetMetadataDraft(item: LibraryItem) {
     setEditingLibraryItem(item);
-    setMetadataTitleDraft(item.title || item.preview_title || '');
-    setMetadataDescriptionDraft(item.description || item.preview_description || '');
+    setMetadataTitleDraft(decodeHtmlEntities(item.title || item.preview_title || ''));
+    setMetadataDescriptionDraft(decodeHtmlEntities(item.description || item.preview_description || ''));
     setMetadataTermsDraft((item.taxonomy_terms ?? []).join(', '));
   }
 
@@ -1093,7 +1093,16 @@ export function App() {
       );
       setEditingLibraryItem(null);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Failed to save metadata');
+      const message = cause instanceof Error ? cause.message : 'Failed to save metadata';
+      const missingMetadataRoutes =
+        message.includes('Route') &&
+        message.includes('/api/library/items/') &&
+        message.includes('not found');
+      if (missingMetadataRoutes) {
+        setError('Metadata save route is unavailable on the running API. Restart/rebuild the API service, then try again.');
+      } else {
+        setError(message);
+      }
     } finally {
       setBusy(false);
     }
