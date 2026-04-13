@@ -241,11 +241,29 @@ export const api = {
     itemId: string,
     payload: { title?: string | null; description?: string | null; taxonomyTerms?: string[] }
   ) =>
-    request<{ item: { id: string; title?: string | null; description?: string | null; taxonomy_terms: string[] } }>(
-      `/api/library/items/${itemId}`,
-      { method: 'PATCH', body: JSON.stringify(payload) },
-      token
-    ),
+    (async () => {
+      const body = JSON.stringify(payload);
+      const attempts: { path: string; method: 'PATCH' | 'PUT' | 'POST' }[] = [
+        { path: `/api/library/items/${itemId}`, method: 'PATCH' },
+        { path: `/api/library/items/${itemId}`, method: 'PUT' },
+        { path: `/api/library/items/${itemId}/metadata`, method: 'POST' }
+      ];
+
+      let lastError: Error | null = null;
+      for (const attempt of attempts) {
+        try {
+          return await request<{ item: { id: string; title?: string | null; description?: string | null; taxonomy_terms: string[] } }>(
+            attempt.path,
+            { method: attempt.method, body },
+            token
+          );
+        } catch (cause) {
+          lastError = cause instanceof Error ? cause : new Error('Failed to update library item');
+          // Continue to fallback aliases for 404/method mismatch or proxy behavior differences.
+        }
+      }
+      throw lastError ?? new Error('Failed to update library item');
+    })(),
   collections: (token: string, serverId: string) =>
     request<{
       collections: { id: string; name: string; visibility: 'private' | 'public'; created_at: string }[];

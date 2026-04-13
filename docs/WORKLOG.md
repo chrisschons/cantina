@@ -112,3 +112,5 @@
 - Validation status: runtime checks blocked in this environment (`docker`, `node`, and `pnpm` are unavailable in sandbox)
 - Refined vocabulary UX: explicit add-term actions (selected items vs filtered set) plus dedicated filter action
 - Added taxonomy autocomplete suggestion list and fallback vocabulary suggestions to keep suggest box populated
+- Added alias metadata update routes in API so library term/title/description saves work across mixed client/server versions
+- Added client-side fallback for `updateLibraryItem` requests (PATCH, then PUT, then POST metadata)

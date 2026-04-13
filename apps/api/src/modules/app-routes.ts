@@ -4,7 +4,7 @@ import { randomBytes, randomUUID } from 'node:crypto';
 import { pipeline } from 'node:stream/promises';
 import { resolve } from 'node:path';
 
-import { FastifyInstance } from 'fastify';
+import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 
 import { config } from '../config.js';
@@ -929,7 +929,10 @@ export async function registerAppRoutes(app: FastifyInstance) {
     return { items: result.rows };
   });
 
-  app.patch('/api/library/items/:itemId', { preHandler: authGuard }, async (request, reply) => {
+  const updateLibraryItemMetadataHandler = async (
+    request: FastifyRequest<{ Params: { itemId: string } }>,
+    reply: FastifyReply
+  ) => {
     const params = request.params as { itemId: string };
     const parsed = updateLibraryItemMetadataSchema.safeParse(request.body);
     const userId = request.authUser!.userId;
@@ -976,7 +979,12 @@ export async function registerAppRoutes(app: FastifyInstance) {
     );
 
     return { item: result.rows[0] };
-  });
+  };
+
+  // Keep PATCH as primary route while supporting PUT/POST aliases for older clients/reverse proxies.
+  app.patch('/api/library/items/:itemId', { preHandler: authGuard }, updateLibraryItemMetadataHandler);
+  app.put('/api/library/items/:itemId', { preHandler: authGuard }, updateLibraryItemMetadataHandler);
+  app.post('/api/library/items/:itemId/metadata', { preHandler: authGuard }, updateLibraryItemMetadataHandler);
 
   app.get('/api/library/collections', { preHandler: authGuard }, async (request, reply) => {
     const userId = request.authUser!.userId;

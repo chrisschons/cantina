@@ -87,3 +87,5 @@ All notable changes to this project are tracked here.
 - Docker Compose stack and setup/version documentation
 - Improved taxonomy quick-actions: explicit Apply to Selected, Apply to Filtered, and Use as Filter actions to remove ambiguous behavior
 - Added taxonomy autocomplete datalist from visible suggestions/facets and stronger fallback suggested vocabulary terms
+- Added compatibility library metadata update routes (`PUT /api/library/items/:itemId` and `POST /api/library/items/:itemId/metadata`) alongside PATCH
+- Added web API fallback sequence for library metadata updates (PATCH -> PUT -> POST metadata) to avoid 404 save failures
