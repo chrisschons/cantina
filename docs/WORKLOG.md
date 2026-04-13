@@ -16,6 +16,7 @@
 - Updated web head metadata to reference favicon assets
 - Fixed selected-collection card hydration by merging collection items with cached all-library metadata by `id`
 - Decoded HTML entities for library title/description display (e.g. `&quot;`, `&#39;`, `&amp;`)
+- Extended music preview card actions to include TIDAL for Spotify/Apple links
 
 ## 2026-04-12
 

@@ -126,10 +126,8 @@ function getYouTubeEmbedUrl(rawUrl: string) {
 
 type MusicPreview = {
   embedUrl: string;
-  sourceLabel: 'Spotify' | 'Apple Music';
-  sourcePlayUrl: string;
-  alternateLabel: 'Spotify' | 'Apple Music';
-  alternatePlayUrl: string;
+  sourceLabel: 'Spotify' | 'Apple Music' | 'TIDAL';
+  actions: { label: 'Spotify' | 'Apple Music' | 'TIDAL'; url: string }[];
 };
 
 function getSpotifyTrackId(rawUrl: string) {
@@ -169,28 +167,33 @@ function getAppleMusicTrackInfo(rawUrl: string) {
 }
 
 function getMusicPreview(url: string, preview?: LinkPreview): MusicPreview | null {
+  const query = encodeURIComponent(preview?.title || preview?.description || 'song');
+  const tidalSearchUrl = `https://listen.tidal.com/search?q=${query}`;
+
   const spotifyTrackId = getSpotifyTrackId(url);
   if (spotifyTrackId) {
-    const query = encodeURIComponent(preview?.title || preview?.description || 'song');
     return {
       embedUrl: `https://open.spotify.com/embed/track/${spotifyTrackId}`,
       sourceLabel: 'Spotify',
-      sourcePlayUrl: `https://open.spotify.com/track/${spotifyTrackId}`,
-      alternateLabel: 'Apple Music',
-      alternatePlayUrl: `https://music.apple.com/us/search?term=${query}`
+      actions: [
+        { label: 'Spotify', url: `https://open.spotify.com/track/${spotifyTrackId}` },
+        { label: 'Apple Music', url: `https://music.apple.com/us/search?term=${query}` },
+        { label: 'TIDAL', url: tidalSearchUrl }
+      ]
     };
   }
 
   const appleInfo = getAppleMusicTrackInfo(url);
   if (appleInfo) {
     const parsed = new URL(url);
-    const query = encodeURIComponent(preview?.title || preview?.description || 'song');
     return {
       embedUrl: `https://embed.music.apple.com/${appleInfo.country}${parsed.pathname}?i=${appleInfo.trackId}`,
       sourceLabel: 'Apple Music',
-      sourcePlayUrl: url,
-      alternateLabel: 'Spotify',
-      alternatePlayUrl: `https://open.spotify.com/search/${query}`
+      actions: [
+        { label: 'Apple Music', url },
+        { label: 'Spotify', url: `https://open.spotify.com/search/${query}` },
+        { label: 'TIDAL', url: tidalSearchUrl }
+      ]
     };
   }
 
@@ -1467,12 +1470,17 @@ export function App() {
                             <strong>{preview?.title || `${musicPreview.sourceLabel} track`}</strong>
                             {preview?.description ? <span className="preview-description">{preview.description}</span> : null}
                             <div className="music-actions">
-                              <a className="music-play-button" href={musicPreview.sourcePlayUrl} rel="noreferrer" target="_blank">
-                                Play on {musicPreview.sourceLabel}
-                              </a>
-                              <a className="music-play-button ghost" href={musicPreview.alternatePlayUrl} rel="noreferrer" target="_blank">
-                                Play on {musicPreview.alternateLabel}
-                              </a>
+                              {musicPreview.actions.map((action, index) => (
+                                <a
+                                  className={index === 0 ? 'music-play-button' : 'music-play-button ghost'}
+                                  href={action.url}
+                                  key={`${message.id}-${url}-${action.label}`}
+                                  rel="noreferrer"
+                                  target="_blank"
+                                >
+                                  Play on {action.label}
+                                </a>
+                              ))}
                             </div>
                           </div>
                         </article>
